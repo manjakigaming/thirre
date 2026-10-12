@@ -216,7 +216,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <a href="#" className="text-lg font-black text-blue-700">THIRRE.</a>
-          <p>Gjej profesionistin e duhur. © {new Date().getFullYear()} THIRRE.</p>
+          <p>Gjej profesionistin e duhur. © 2026 THIRRE.</p>
           <p>Projekt në zhvillim · Kosovë</p>
         </div>
       </footer>
