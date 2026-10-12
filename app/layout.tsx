@@ -13,11 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://thirre.vercel.app"),
   title: "THIRRE | Gjej profesionistin e duhur në Kosovë",
   description:
     "Gjej elektricistë, hidraulikë, pastrues dhe mjeshtër renovimesh në Kosovë me platformën THIRRE.",
   applicationName: "THIRRE",
+  openGraph: {
+    title: "THIRRE | Gjej profesionistin e duhur në Kosovë",
+    description:
+      "Gjej mjeshtrin që të duhet. Zbulo profesionistë në Kosovë me THIRRE.",
+    url: "https://thirre.vercel.app/",
+    siteName: "THIRRE",
+    locale: "sq_XK",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "THIRRE | Profesionistë në Kosovë",
+    description:
+      "Gjej elektricistë, hidraulikë, pastrues dhe mjeshtër renovimesh.",
+  },
   keywords: [
     "THIRRE",
     "profesionistë në Kosovë",
@@ -30,14 +47,3 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
 };
-
-export default function RootLayout({ children }: LayoutProps<"/">) {
-  return (
-    <html
-      lang="sq"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
-    </html>
-  );
-}
