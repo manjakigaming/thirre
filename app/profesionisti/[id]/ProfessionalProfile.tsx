@@ -186,8 +186,8 @@ export default function ProfessionalProfile() {
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Shiko të dhënat e profesionistit. Mundësinë e kontaktit
-                    do ta rregullojmë në fund.
+                    Zbulo shërbimet që ofron ky profesionist dhe gjej personin e duhur
+                    për punën që të nevojitet.
                   </p>
                 </div>
               )}
