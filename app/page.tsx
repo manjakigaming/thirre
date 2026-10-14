@@ -12,6 +12,7 @@ type Professional = {
   city: string;
   phone?: string | null;
   description?: string | null;
+  services?: string[] | null;
 };
 
 const categories = [
@@ -77,7 +78,7 @@ export default function Home() {
           supabase
             .from("professional_profiles")
             .select(
-              "id, business_name, category, city, phone, description"
+              "id, business_name, category, city, phone, description, services"
             )
             .order("business_name", { ascending: true }),
           supabase.auth.getUser(),
@@ -91,7 +92,7 @@ export default function Home() {
             profileResult.error.message
           );
         } else {
-          setProfessionals(profileResult.data ?? []);
+          setProfessionals((profileResult.data ?? []) as Professional[]);
         }
 
         setUserEmail(userResult.data.user?.email ?? null);
@@ -137,11 +138,13 @@ export default function Home() {
         professional.category,
         professional.city,
         professional.description ?? "",
+        ...(Array.isArray(professional.services)
+          ? professional.services
+          : []),
       ].join(" ")
     );
 
-    const matchesSearch =
-      !term || searchableText.includes(term);
+    const matchesSearch = !term || searchableText.includes(term);
 
     const matchesCategory =
       !selected ||
@@ -395,12 +398,8 @@ export default function Home() {
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
                 {category.icon}
               </span>
-              <h3 className="mt-5 text-lg font-extrabold">
-                {category.name}
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">
-                {category.desc}
-              </p>
+              <h3 className="mt-5 text-lg font-extrabold">{category.name}</h3>
+              <p className="mt-2 text-sm text-slate-500">{category.desc}</p>
               <span className="mt-5 inline-block text-sm font-bold text-blue-700">
                 Shiko shërbimet →
               </span>
@@ -491,11 +490,32 @@ export default function Home() {
                     <p className="mt-3 text-sm text-slate-500">
                       📍 {professional.city}
                     </p>
+
                     {professional.description && (
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                         {professional.description}
                       </p>
                     )}
+
+                    {professional.services &&
+                      professional.services.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {professional.services.slice(0, 3).map((service) => (
+                            <span
+                              key={service}
+                              className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800"
+                            >
+                              {service}
+                            </span>
+                          ))}
+                          {professional.services.length > 3 && (
+                            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                              +{professional.services.length - 3} të tjera
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-blue-700">
                       Shiko profilin <span aria-hidden="true">→</span>
                     </span>
