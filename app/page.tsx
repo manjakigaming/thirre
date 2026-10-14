@@ -186,13 +186,16 @@ export default function Home() {
             THIRRE<span className="text-blue-500">.</span>
           </Link>
 
-          <nav className="hidden items-center gap-8 text-sm font-semibold text-slate-600 md:flex">
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 lg:flex">
             <a href="#kategorite" className="hover:text-blue-700">
               Kategoritë
             </a>
             <a href="#profesionistet" className="hover:text-blue-700">
               Profesionistët
             </a>
+            <Link href="/kerkesat" className="hover:text-blue-700">
+              Kërko shërbim
+            </Link>
             <a href="#si-funksionon" className="hover:text-blue-700">
               Si funksionon
             </a>
@@ -253,6 +256,9 @@ export default function Home() {
             <a href="#profesionistet" onClick={() => setMenuOpen(false)}>
               Profesionistët
             </a>
+            <Link href="/kerkesat" onClick={() => setMenuOpen(false)}>
+              Kërko shërbim
+            </Link>
             <a href="#si-funksionon" onClick={() => setMenuOpen(false)}>
               Si funksionon
             </a>
@@ -289,7 +295,7 @@ export default function Home() {
       <section className="relative overflow-hidden bg-gradient-to-br from-[#102b67] via-[#1747a5] to-[#2878e8] text-white">
         <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full bg-blue-300/20 blur-3xl" />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 md:grid-cols-2 md:px-8 md:py-28">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 md:grid-cols-2 md:px-8 md:py-24">
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold">
               <span className="h-2 w-2 rounded-full bg-emerald-300" />
@@ -332,6 +338,13 @@ export default function Home() {
                 Kërko profesionist
               </button>
             </form>
+
+            <Link
+              href="/kerkesat"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/40 bg-white/10 px-6 py-3 font-bold text-white transition hover:bg-white/20 sm:w-auto"
+            >
+              Nuk e gjete profesionistin? Publiko kërkesë →
+            </Link>
 
             <p className="mt-4 text-sm text-blue-100">
               Elektricitet, ujësjellës, pastrim dhe renovime.
@@ -578,6 +591,21 @@ export default function Home() {
               <p className="mt-3 leading-7 text-slate-500">{step.text}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 p-6 text-center sm:p-8">
+          <h3 className="text-xl font-extrabold text-slate-900">
+            Nuk e gjete profesionistin që të duhet?
+          </h3>
+          <p className="mt-2 text-slate-600">
+            Publiko kërkesën tënde dhe trego çfarë pune kërkon.
+          </p>
+          <Link
+            href="/kerkesat"
+            className="mt-5 inline-flex rounded-xl bg-blue-700 px-6 py-3.5 font-bold text-white transition hover:bg-blue-800"
+          >
+            Publiko kërkesë →
+          </Link>
         </div>
       </section>
 
