@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -40,8 +41,16 @@ const categories = [
   },
 ];
 
+function normalizeText(value: string) {
+  return value
+    .toLocaleLowerCase("sq-AL")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 function getCategoryIcon(category: string) {
-  const value = category.toLowerCase();
+  const value = normalizeText(category);
 
   if (value.includes("elektricist")) return "⚡";
   if (value.includes("hidraulik")) return "🔧";
@@ -120,16 +129,25 @@ export default function Home() {
   }
 
   const filtered = professionals.filter((professional) => {
-    const term = search.trim().toLowerCase();
+    const term = normalizeText(search);
 
-    const searchableText =
-      `${professional.business_name} ${professional.category} ${professional.city}`.toLowerCase();
+    const searchableText = normalizeText(
+      [
+        professional.business_name,
+        professional.category,
+        professional.city,
+        professional.description ?? "",
+      ].join(" ")
+    );
 
-    const matchesSearch = searchableText.includes(term);
+    const matchesSearch =
+      !term || searchableText.includes(term);
 
     const matchesCategory =
       !selected ||
-      professional.category.toLowerCase().includes(selected.toLowerCase());
+      normalizeText(professional.category).includes(
+        normalizeText(selected)
+      );
 
     return matchesSearch && matchesCategory;
   });
@@ -183,14 +201,12 @@ export default function Home() {
                 <span className="max-w-44 truncate text-sm font-semibold text-slate-600">
                   {userEmail}
                 </span>
-
                 <button
                   onClick={logout}
                   className="rounded-xl border px-4 py-3 text-sm font-bold hover:bg-slate-50"
                 >
                   Dil
                 </button>
-
                 <Link
                   href="/offer-services"
                   className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
@@ -206,7 +222,6 @@ export default function Home() {
                 >
                   Hyr
                 </Link>
-
                 <Link
                   href="/register"
                   className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
@@ -247,7 +262,6 @@ export default function Home() {
                 >
                   Ofro shërbime
                 </Link>
-
                 <button
                   onClick={logout}
                   className="self-start text-red-600"
@@ -304,11 +318,10 @@ export default function Home() {
                   setSearch(event.target.value);
                   setSelected("");
                 }}
-                placeholder="Kërko shërbim ose qytet..."
-                aria-label="Kërko profesionist"
+                placeholder="Kërko emër, shërbim ose qytet..."
+                aria-label="Kërko sipas emrit, shërbimit ose qytetit"
                 className="min-w-0 flex-1 px-3 py-3 text-sm text-slate-800 outline-none"
               />
-
               <button
                 type="submit"
                 className="rounded-xl bg-blue-700 px-7 py-4 font-bold text-white hover:bg-blue-800"
@@ -327,7 +340,6 @@ export default function Home() {
               <p className="text-sm text-blue-100">
                 THIRRE për shtëpinë tënde
               </p>
-
               <h2 className="mt-1 border-b border-white/15 pb-5 text-xl font-bold">
                 Çfarë të duhet sot?
               </h2>
@@ -366,11 +378,9 @@ export default function Home() {
         <p className="text-sm font-bold uppercase tracking-widest text-blue-700">
           Gjej sipas kategorisë
         </p>
-
         <h2 className="mt-3 text-3xl font-black sm:text-4xl">
           Çfarë pune të duhet?
         </h2>
-
         <p className="mt-3 text-slate-500">
           Zgjedh shërbimin dhe fillo kërkimin.
         </p>
@@ -385,15 +395,12 @@ export default function Home() {
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
                 {category.icon}
               </span>
-
               <h3 className="mt-5 text-lg font-extrabold">
                 {category.name}
               </h3>
-
               <p className="mt-2 text-sm text-slate-500">
                 {category.desc}
               </p>
-
               <span className="mt-5 inline-block text-sm font-bold text-blue-700">
                 Shiko shërbimet →
               </span>
@@ -410,22 +417,28 @@ export default function Home() {
           <p className="text-sm font-bold uppercase tracking-widest text-blue-700">
             Eksploro
           </p>
-
           <h2 className="mt-3 text-3xl font-black sm:text-4xl">
             Profesionistë për ty
           </h2>
-
           <p className="mt-3 text-slate-500">
             Profilet e regjistruara në THIRRE.
           </p>
 
           {(selected || search) && (
-            <button
-              onClick={clearFilters}
-              className="mt-4 rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700"
-            >
-              Hiq filtrin ×
-            </button>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <p className="text-sm text-slate-600">
+                {filtered.length}{" "}
+                {filtered.length === 1
+                  ? "profesionist i gjetur"
+                  : "profesionistë të gjetur"}
+              </p>
+              <button
+                onClick={clearFilters}
+                className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+              >
+                Hiq filtrin ×
+              </button>
+            </div>
           )}
 
           {loading ? (
@@ -434,17 +447,22 @@ export default function Home() {
             </p>
           ) : filtered.length === 0 ? (
             <div className="mt-8 rounded-2xl border border-dashed border-slate-300 p-10 text-center">
-              <p className="text-lg font-bold">
+              <div className="text-4xl">🔎</div>
+              <p className="mt-4 text-lg font-bold">
                 Nuk u gjetën profesionistë.
               </p>
-
               <p className="mt-2 text-sm text-slate-500">
-                Provo një kërkim tjetër ose regjistro profilin tënd profesional.
+                Provo një emër, qytet ose shërbim tjetër, ose hiqi filtrat.
               </p>
-
+              <button
+                onClick={clearFilters}
+                className="mt-5 rounded-xl border border-slate-200 px-5 py-3 font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Shfaq të gjithë profesionistët
+              </button>
               <Link
                 href="/offer-services"
-                className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
+                className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white hover:bg-blue-800"
               >
                 Ofro shërbime
               </Link>
@@ -464,25 +482,20 @@ export default function Home() {
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
                       {getCategoryIcon(professional.category)}
                     </div>
-
                     <h3 className="mt-4 text-lg font-extrabold hover:text-blue-700">
                       {professional.business_name}
                     </h3>
-
                     <p className="mt-1 text-sm text-blue-700">
                       {professional.category}
                     </p>
-
                     <p className="mt-3 text-sm text-slate-500">
                       📍 {professional.city}
                     </p>
-
                     {professional.description && (
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                         {professional.description}
                       </p>
                     )}
-
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-blue-700">
                       Shiko profilin <span aria-hidden="true">→</span>
                     </span>
@@ -511,7 +524,6 @@ export default function Home() {
           <p className="text-sm font-bold uppercase tracking-widest text-blue-700">
             Thjeshtë dhe shpejt
           </p>
-
           <h2 className="mt-3 text-3xl font-black sm:text-4xl">
             Si funksionon THIRRE?
           </h2>
@@ -542,9 +554,7 @@ export default function Home() {
               <span className="text-sm font-black tracking-widest text-blue-700">
                 {step.n}
               </span>
-
               <h3 className="mt-4 text-xl font-extrabold">{step.title}</h3>
-
               <p className="mt-3 leading-7 text-slate-500">{step.text}</p>
             </div>
           ))}
@@ -557,16 +567,13 @@ export default function Home() {
             <p className="text-sm font-bold uppercase tracking-widest text-blue-200">
               Për profesionistë
             </p>
-
             <h2 className="mt-3 text-2xl font-black sm:text-3xl">
               Gjej më shumë klientë me THIRRE.
             </h2>
-
             <p className="mt-3 max-w-xl leading-7 text-blue-100">
               Regjistro shërbimet e tua dhe bëhu pjesë e platformës.
             </p>
           </div>
-
           <Link
             href="/offer-services"
             className="rounded-xl bg-white px-6 py-4 font-extrabold text-blue-800 hover:bg-blue-50"
@@ -581,9 +588,7 @@ export default function Home() {
           <Link href="/" className="text-lg font-black text-blue-700">
             THIRRE.
           </Link>
-
           <p>Gjej profesionistin e duhur. © 2026 THIRRE.</p>
-
           <p>Projekt në zhvillim · Kosovë</p>
         </div>
       </footer>
