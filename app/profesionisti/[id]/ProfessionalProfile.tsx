@@ -14,6 +14,7 @@ type Professional = {
   city: string;
   phone?: string | null;
   description?: string | null;
+  services?: string[] | null;
 };
 
 function getIcon(category: string) {
@@ -31,8 +32,7 @@ export default function ProfessionalProfile() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
-  const [professional, setProfessional] =
-    useState<Professional | null>(null);
+  const [professional, setProfessional] = useState<Professional | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isOwner, setIsOwner] = useState(false);
@@ -49,7 +49,7 @@ export default function ProfessionalProfile() {
           supabase
             .from("professional_profiles")
             .select(
-              "id, user_id, business_name, category, city, phone, description"
+              "id, user_id, business_name, category, city, phone, description, services"
             )
             .eq("id", id)
             .maybeSingle(),
@@ -226,6 +226,36 @@ export default function ProfessionalProfile() {
 
                 <section>
                   <h2 className="text-lg font-black">
+                    Shërbimet që ofron
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Shërbimet e zgjedhura nga ky profesionist.
+                  </p>
+
+                  {professional.services &&
+                  professional.services.length > 0 ? (
+                    <ul className="mt-4 flex flex-wrap gap-2">
+                      {professional.services.map((service, index) => (
+                        <li
+                          key={`${service}-${index}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800"
+                        >
+                          <span aria-hidden="true">✓</span>
+                          {service}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-500">
+                      Ky profesionist ende nuk ka shtuar shërbime në listë.
+                    </p>
+                  )}
+                </section>
+
+                <div className="my-8 border-t border-slate-100" />
+
+                <section>
+                  <h2 className="text-lg font-black">
                     Informacion për profesionistin
                   </h2>
 
@@ -265,7 +295,7 @@ export default function ProfessionalProfile() {
 
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     {isOwner
-                      ? "Përditëso të dhënat e biznesit dhe përshkrimin e shërbimeve."
+                      ? "Përditëso të dhënat e biznesit dhe listën e shërbimeve."
                       : "Shiko informacionin e profesionistit për të kuptuar nëse shërbimi të përshtatet."}
                   </p>
 
