@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -11,6 +12,7 @@ type ServiceRequest = {
   description: string;
   category: string;
   city: string;
+  status: string;
   created_at?: string;
 };
 
@@ -33,6 +35,7 @@ export default function PergjigjetPage() {
   const [tab, setTab] = useState<Tab>("requests");
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -62,11 +65,10 @@ export default function PergjigjetPage() {
         supabase
           .from("service_requests")
           .select(
-            "id, user_id, title, description, category, city, created_at"
+            "id, user_id, title, description, category, city, status, created_at"
           )
           .order("created_at", { ascending: false }),
 
-        // Ofertat që ky përdorues ua ka dërguar të tjerëve.
         supabase
           .from("service_request_responses")
           .select("id, request_id, user_id, message, created_at")
@@ -83,14 +85,10 @@ export default function PergjigjetPage() {
       setRequests(requestData);
       setResponses(sentData);
 
-      // Gjej ID-të e kërkesave të publikuara nga ky përdorues.
       const ownRequestIds = requestData
         .filter((request) => request.user_id === user.id)
         .map((request) => request.id);
 
-      // Merr ofertat e dërguara për kërkesat e tij.
-      // RLS në Supabase duhet të lejojë pronarin e kërkesës
-      // t'i lexojë këto oferta.
       if (ownRequestIds.length > 0) {
         const { data, error: offersError } = await supabase
           .from("service_request_responses")
@@ -99,7 +97,6 @@ export default function PergjigjetPage() {
           .order("created_at", { ascending: false });
 
         if (offersError) throw offersError;
-
         setIncomingOffers((data ?? []) as ResponseItem[]);
       } else {
         setIncomingOffers([]);
@@ -109,7 +106,7 @@ export default function PergjigjetPage() {
       setError(
         err instanceof Error
           ? `Gabim: ${err.message}`
-          : "Të dhënat nuk u ngarkuan. Rifresko faqen dhe provo përsëri."
+          : "Të dhënat nuk u ngarkuan. Provo përsëri."
       );
     } finally {
       setLoading(false);
@@ -136,6 +133,11 @@ export default function PergjigjetPage() {
       return;
     }
 
+    if (request.status !== "open") {
+      setError("Kjo kërkesë është mbyllur dhe nuk pranon oferta.");
+      return;
+    }
+
     if (message.length < 5 || message.length > 2000) {
       setError("Oferta duhet të ketë 5 deri në 2000 karaktere.");
       return;
@@ -156,15 +158,10 @@ export default function PergjigjetPage() {
         if (insertError.code === "23505") {
           throw new Error("Ke dërguar tashmë ofertë për këtë kërkesë.");
         }
-
         throw insertError;
       }
 
-      setMessages((current) => ({
-        ...current,
-        [request.id]: "",
-      }));
-
+      setMessages((current) => ({ ...current, [request.id]: "" }));
       setNotice("Oferta u dërgua me sukses!");
       await loadData();
     } catch (err) {
@@ -176,6 +173,52 @@ export default function PergjigjetPage() {
       );
     } finally {
       setSendingId(null);
+    }
+  }
+
+  async function closeRequest(request: ServiceRequest) {
+    if (!userId || request.user_id !== userId) {
+      setError("Vetëm pronari mund ta mbyllë kërkesën.");
+      return;
+    }
+
+    if (request.status !== "open") return;
+
+    const confirmed = window.confirm(
+      `A je i sigurt që dëshiron ta mbyllësh kërkesën "${request.title}"?`
+    );
+
+    if (!confirmed) return;
+
+    setNotice("");
+    setError("");
+    setClosingId(request.id);
+
+    try {
+      const { data, error: closeError } = await supabase.rpc(
+        "close_service_request",
+        { request_id: request.id }
+      );
+
+      if (closeError) throw closeError;
+
+      if (data !== true) {
+        throw new Error(
+          "Kërkesa nuk u mbyll. Mund të jetë mbyllur më herët."
+        );
+      }
+
+      setNotice("Kërkesa u mbyll me sukses.");
+      await loadData();
+    } catch (err) {
+      console.error("Gabim gjatë mbylljes së kërkesës:", err);
+      setError(
+        err instanceof Error
+          ? `Nuk u mbyll kërkesa: ${err.message}`
+          : "Kërkesa nuk u mbyll. Provo përsëri."
+      );
+    } finally {
+      setClosingId(null);
     }
   }
 
@@ -209,8 +252,7 @@ export default function PergjigjetPage() {
             Kërkesat dhe ofertat
           </h1>
           <p className="mt-3 leading-7 text-slate-600">
-            Gjej punë të publikuara nga klientët ose kontrollo ofertat për
-            kërkesat e tua.
+            Shiko punët e publikuara, dërgo oferta dhe menaxho kërkesat e tua.
           </p>
         </header>
 
@@ -234,7 +276,7 @@ export default function PergjigjetPage() {
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
-            Ofertat e mia ({incomingOffers.length})
+            Ofertat për kërkesat e mia ({incomingOffers.length})
           </button>
 
           <button
@@ -296,9 +338,8 @@ export default function PergjigjetPage() {
             <section className="mt-8 space-y-5">
               {requests.map((request) => {
                 const isOwner = request.user_id === userId;
-                const alreadyResponded = myResponseRequestIds.has(
-                  request.id
-                );
+                const alreadyResponded = myResponseRequestIds.has(request.id);
+                const isOpen = request.status === "open";
 
                 return (
                   <article
@@ -311,6 +352,15 @@ export default function PergjigjetPage() {
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                         📍 {request.city}
+                      </span>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${
+                          isOpen
+                            ? "bg-emerald-50 text-emerald-800"
+                            : "bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {isOpen ? "E hapur" : "E mbyllur"}
                       </span>
                     </div>
 
@@ -325,24 +375,47 @@ export default function PergjigjetPage() {
                     {request.created_at && (
                       <p className="mt-4 text-xs text-slate-400">
                         Publikuar më{" "}
-                        {new Date(request.created_at).toLocaleDateString(
-                          "sq-AL"
-                        )}
+                        {new Date(request.created_at).toLocaleDateString("sq-AL")}
                       </p>
                     )}
 
                     {isOwner ? (
-                      <p className="mt-5 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-                        Kjo është kërkesa jote. Kontrollo ofertat te skeda
-                        “Ofertat e mia”.
-                      </p>
+                      <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <p className="text-sm text-slate-600">
+                          {isOpen
+                            ? "Kjo është kërkesa jote. Mund t'i shohësh ofertat te skeda përkatëse."
+                            : "Kjo kërkesë është mbyllur. Ofertat e mëparshme ruhen."}
+                        </p>
+
+                        {isOpen && (
+                          <button
+                            onClick={() => void closeRequest(request)}
+                            disabled={closingId === request.id}
+                            className="rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {closingId === request.id
+                              ? "Duke mbyllur..."
+                              : "Mbylle kërkesën"}
+                          </button>
+                        )}
+                      </div>
                     ) : !userId ? (
-                      <Link
-                        href="/login"
-                        className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
-                      >
-                        Kyçu për të dërguar ofertë
-                      </Link>
+                      isOpen ? (
+                        <Link
+                          href="/login"
+                          className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
+                        >
+                          Kyçu për të dërguar ofertë
+                        </Link>
+                      ) : (
+                        <p className="mt-5 text-sm text-slate-500">
+                          Kjo kërkesë është mbyllur.
+                        </p>
+                      )
+                    ) : !isOpen ? (
+                      <p className="mt-5 rounded-xl bg-slate-100 p-3 text-sm text-slate-600">
+                        Kjo kërkesë është mbyllur dhe nuk pranon oferta të reja.
+                      </p>
                     ) : alreadyResponded ? (
                       <p className="mt-5 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
                         Ke dërguar tashmë ofertë për këtë kërkesë.
@@ -398,7 +471,7 @@ export default function PergjigjetPage() {
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center">
             <h2 className="text-xl font-bold">Kyçu në llogari</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Për të parë kërkesat e tua dhe ofertat e ardhura, duhet të kyçesh.
+              Për të parë ofertat për kërkesat e tua, duhet të kyçesh.
             </p>
             <Link
               href="/login"
@@ -409,12 +482,9 @@ export default function PergjigjetPage() {
           </div>
         ) : myRequests.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h2 className="text-xl font-bold">
-              Ende nuk ke publikuar kërkesë
-            </h2>
+            <h2 className="text-xl font-bold">Ende nuk ke publikuar kërkesë</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Kur profesionistët t'u dërgojnë oferta kërkesave të tua, ato do
-              të shfaqen këtu.
+              Kur profesionistët t'u dërgojnë oferta kërkesave të tua, ato do të shfaqen këtu.
             </p>
             <Link
               href="/kerkesat"
@@ -427,8 +497,7 @@ export default function PergjigjetPage() {
           <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <h2 className="text-xl font-bold">Nuk ke marrë oferta ende</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Ofertat do të shfaqen këtu pasi profesionistët t'u përgjigjen
-              kërkesave të tua.
+              Ofertat do të shfaqen këtu pasi profesionistët t'u përgjigjen kërkesave të tua.
             </p>
           </div>
         ) : (
@@ -444,21 +513,17 @@ export default function PergjigjetPage() {
                   <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
                     Oferta për kërkesën
                   </p>
-
                   <h2 className="mt-2 text-xl font-extrabold">
                     {request?.title ?? "Kërkesë shërbimi"}
                   </h2>
-
                   {request && (
                     <p className="mt-2 text-sm text-slate-500">
                       {request.category} · {request.city}
                     </p>
                   )}
-
                   <div className="mt-5 whitespace-pre-wrap rounded-xl bg-slate-50 p-4 leading-7 text-slate-700">
                     {offer.message}
                   </div>
-
                   <p className="mt-4 text-xs text-slate-400">
                     Dërguar më{" "}
                     {new Date(offer.created_at).toLocaleDateString("sq-AL")}
