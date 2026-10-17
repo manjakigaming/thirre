@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,6 +14,10 @@ type Professional = {
   phone?: string | null;
   description?: string | null;
   services?: string[] | null;
+  logo_url?: string | null;
+  experience_years?: number | null;
+  working_hours?: string | null;
+  service_area?: string | null;
 };
 
 function getIcon(category: string) {
@@ -49,7 +52,7 @@ export default function ProfessionalProfile() {
           supabase
             .from("professional_profiles")
             .select(
-              "id, user_id, business_name, category, city, phone, description, services"
+              "id, user_id, business_name, category, city, phone, description, services, logo_url, experience_years, working_hours, service_area"
             )
             .eq("id", id)
             .maybeSingle(),
@@ -68,12 +71,15 @@ export default function ProfessionalProfile() {
           return;
         }
 
-        const profile = profileResult.data as Professional;
-        setProfessional(profile);
+        setProfessional(profileResult.data as Professional);
 
         const currentUser = userResult.data.user;
+
         setIsOwner(
-          Boolean(currentUser && currentUser.id === profile.user_id)
+          Boolean(
+            currentUser &&
+              currentUser.id === profileResult.data.user_id
+          )
         );
       } catch {
         if (active) {
@@ -163,8 +169,19 @@ export default function ProfessionalProfile() {
 
               <div className="relative">
                 <div className="flex flex-wrap items-start justify-between gap-5">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/20 bg-white/10 text-5xl shadow-lg backdrop-blur-sm sm:h-24 sm:w-24 sm:text-6xl">
-                    {getIcon(professional.category)}
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-white/20 bg-white/10 text-5xl shadow-lg backdrop-blur-sm sm:h-24 sm:w-24 sm:text-6xl">
+                    {professional.logo_url ? (
+                      <img
+                        src={professional.logo_url}
+                        alt={`Logoja e ${professional.business_name}`}
+                        className="h-full w-full bg-white p-2 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      getIcon(professional.category)
+                    )}
                   </div>
 
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-blue-50">
@@ -228,6 +245,7 @@ export default function ProfessionalProfile() {
                   <h2 className="text-lg font-black">
                     Shërbimet që ofron
                   </h2>
+
                   <p className="mt-1 text-sm leading-6 text-slate-500">
                     Shërbimet e zgjedhura nga ky profesionist.
                   </p>
@@ -277,6 +295,40 @@ export default function ProfessionalProfile() {
                         {professional.city}
                       </p>
                     </div>
+
+                    {professional.experience_years != null && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs font-semibold text-slate-500">
+                          Përvoja
+                        </p>
+                        <p className="mt-2 break-words font-bold text-slate-900">
+                          {professional.experience_years}{" "}
+                          {professional.experience_years === 1 ? "vit" : "vite"}
+                        </p>
+                      </div>
+                    )}
+
+                    {professional.working_hours?.trim() && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs font-semibold text-slate-500">
+                          Orari i punës
+                        </p>
+                        <p className="mt-2 break-words font-bold text-slate-900">
+                          {professional.working_hours}
+                        </p>
+                      </div>
+                    )}
+
+                    {professional.service_area?.trim() && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                        <p className="text-xs font-semibold text-slate-500">
+                          Zona e shërbimit
+                        </p>
+                        <p className="mt-2 break-words font-bold text-slate-900">
+                          {professional.service_area}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>
@@ -315,6 +367,20 @@ export default function ProfessionalProfile() {
                     </Link>
                   )}
                 </section>
+
+                {professional.phone?.trim() && (
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Kontakt
+                    </p>
+                    <p className="mt-2 break-words font-bold text-slate-900">
+                      {professional.phone}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      Numri i kontaktit i vendosur nga profesionisti.
+                    </p>
+                  </section>
+                )}
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5">
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-500">

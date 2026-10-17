@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -11,22 +12,75 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    setResetMessage("");
+    setResetError("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
-      router.replace("/");
+      if (!data.user || !data.session?.access_token) {
+        await supabase.auth.signOut();
+        throw new Error("Nuk u gjet sesioni i llogarisë.");
+      }
+
+      const response = await fetch("/api/account-status", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`,
+        },
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        await supabase.auth.signOut();
+        throw new Error(
+          result.error ||
+            "Nuk mund të verifikohet statusi i llogarisë."
+        );
+      }
+
+      if (result.banned) {
+        await supabase.auth.signOut();
+
+        throw new Error(
+          `Llogaria jote është bllokuar nga administratori. Arsyeja: ${
+            result.reason || "Nuk është dhënë arsye."
+          }`
+        );
+      }
+
+      const { data: isAdmin, error: adminError } =
+        await supabase.rpc("is_admin");
+
+      if (adminError) {
+        console.error(
+          "Gabim gjatë kontrollit të administratorit:",
+          adminError
+        );
+      }
+
+      if (!adminError && isAdmin === true) {
+        router.replace("/admin");
+      } else {
+        router.replace("/");
+      }
+
       router.refresh();
     } catch (error) {
       setMessage(
@@ -36,6 +90,47 @@ export default function LoginPage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    setResetMessage("");
+    setResetError("");
+
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setResetError(
+        "Shkruaje email adresën në fushën e email-it dhe provo përsëri."
+      );
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        normalizedEmail,
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      setResetMessage(
+        "Nëse kjo email adresë është e regjistruar, do të marrësh një email me linkun për rikuperimin e fjalëkalimit. Kontrollo edhe dosjen Spam."
+      );
+    } catch (error) {
+      setResetError(
+        error instanceof Error
+          ? error.message
+          : "Nuk mund të dërgohej email-i. Provo përsëri."
+      );
+    } finally {
+      setResetLoading(false);
     }
   }
 
@@ -78,12 +173,25 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-sm font-medium"
-            >
-              Fjalëkalimi
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium"
+              >
+                Fjalëkalimi
+              </label>
+
+              <button
+                type="button"
+                onClick={() => void handleForgotPassword()}
+                disabled={resetLoading}
+                className="text-sm font-medium text-blue-400 transition hover:text-blue-300 disabled:opacity-60"
+              >
+                {resetLoading
+                  ? "Duke dërguar..."
+                  : "Harrove fjalëkalimin?"}
+              </button>
+            </div>
 
             <input
               id="password"
@@ -113,6 +221,26 @@ export default function LoginPage() {
             className="mt-5 break-words rounded-xl border border-red-900 bg-slate-950 p-4 text-sm text-red-300"
           >
             {message}
+          </p>
+        )}
+
+        {resetMessage && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-5 break-words rounded-xl border border-emerald-800 bg-emerald-950/50 p-4 text-sm text-emerald-300"
+          >
+            {resetMessage}
+          </p>
+        )}
+
+        {resetError && (
+          <p
+            role="alert"
+            aria-live="polite"
+            className="mt-5 break-words rounded-xl border border-red-900 bg-slate-950 p-4 text-sm text-red-300"
+          >
+            {resetError}
           </p>
         )}
 
