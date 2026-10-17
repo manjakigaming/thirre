@@ -72,11 +72,11 @@ export default function AdminPage() {
 
       if (authError || !user) {
         setAuthorized(false);
-        setError("Duhet tÃ« kyÃ§esh pÃ«r tÃ« hyrÃ« nÃ« panelin e administratorit.");
+        setError("Duhet të kyçesh për të hyrë në panelin e administratorit.");
         return;
       }
 
-      // Kontrollo nÃ«se pÃ«rdoruesi Ã«shtÃ« administrator.
+      // Kontrollo nëse përdoruesi është administrator.
       const {
         data: isAdmin,
         error: adminError,
@@ -85,7 +85,7 @@ export default function AdminPage() {
       if (adminError) {
         setAuthorized(false);
         setError(
-          `Gabim gjatÃ« kontrollit tÃ« administratorit: ${adminError.message}`
+          `Gabim gjatë kontrollit të administratorit: ${adminError.message}`
         );
         return;
       }
@@ -137,7 +137,7 @@ export default function AdminPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Ndodhi njÃ« gabim gjatÃ« ngarkimit tÃ« tÃ« dhÃ«nave."
+          : "Ndodhi një gabim gjatë ngarkimit të të dhënave."
       );
     } finally {
       setLoading(false);
@@ -185,7 +185,7 @@ export default function AdminPage() {
   async function deleteProfessional(id: string) {
     if (
       !window.confirm(
-        "A je i sigurt qÃ« dÃ«shiron ta fshish kÃ«tÃ« profil profesionisti?"
+        "A je i sigurt që dëshiron ta fshish këtë profil profesionisti?"
       )
     ) {
       return;
@@ -207,7 +207,7 @@ export default function AdminPage() {
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Profili nuk mund tÃ« fshihet."
+        err instanceof Error ? err.message : "Profili nuk mund të fshihet."
       );
     } finally {
       setBusy("");
@@ -237,7 +237,7 @@ export default function AdminPage() {
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Statusi nuk mund tÃ« ndryshohet."
+        err instanceof Error ? err.message : "Statusi nuk mund të ndryshohet."
       );
     } finally {
       setBusy("");
@@ -247,7 +247,7 @@ export default function AdminPage() {
   async function deleteRequest(id: string) {
     if (
       !window.confirm(
-        "A dÃ«shiron ta fshish kÃ«tÃ« kÃ«rkesÃ«? Ofertat e lidhura mund tÃ« fshihen gjithashtu."
+        "A dëshiron ta fshish këtë kërkesë? Ofertat e lidhura mund të fshihen gjithashtu."
       )
     ) {
       return;
@@ -273,7 +273,7 @@ export default function AdminPage() {
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "KÃ«rkesa nuk mund tÃ« fshihet."
+        err instanceof Error ? err.message : "Kërkesa nuk mund të fshihet."
       );
     } finally {
       setBusy("");
@@ -281,7 +281,7 @@ export default function AdminPage() {
   }
 
   async function deleteOffer(id: string) {
-    if (!window.confirm("A dÃ«shiron ta fshish kÃ«tÃ« ofertÃ«?")) {
+    if (!window.confirm("A dëshiron ta fshish këtë ofertë?")) {
       return;
     }
 
@@ -299,7 +299,7 @@ export default function AdminPage() {
       setOffers((current) => current.filter((item) => item.id !== id));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Oferta nuk mund tÃ« fshihet."
+        err instanceof Error ? err.message : "Oferta nuk mund të fshihet."
       );
     } finally {
       setBusy("");
@@ -307,29 +307,29 @@ export default function AdminPage() {
   }
 
   const stats = [
-    { label: "ProfesionistÃ«", value: professionals.length, icon: "ðŸ‘¨â€ðŸ”§" },
-    { label: "KÃ«rkesa", value: requests.length, icon: "ðŸ“‹" },
+    { label: "Profesionistë", value: professionals.length, icon: "👨‍🔧" },
+    { label: "Kërkesa", value: requests.length, icon: "📋" },
     {
-      label: "KÃ«rkesa tÃ« hapura",
+      label: "Kërkesa të hapura",
       value: requests.filter((r) => r.status === "open").length,
-      icon: "ðŸŸ¢",
+      icon: "🟢",
     },
-    { label: "Oferta", value: offers.length, icon: "ðŸ’¬" },
-    { label: "PÃ«rdorues", value: users.length, icon: "ðŸ‘¥" },
+    { label: "Oferta", value: offers.length, icon: "💬" },
+    { label: "Përdorues", value: users.length, icon: "👥" },
   ];
 
   const navItems: { id: Tab; label: string; icon: string }[] = [
-    { id: "overview", label: "PÃ«rmbledhje", icon: "â–¦" },
-    { id: "professionals", label: "ProfesionistÃ«t", icon: "â™™" },
-    { id: "requests", label: "KÃ«rkesat", icon: "â˜·" },
-    { id: "offers", label: "Ofertat", icon: "â†—" },
-    { id: "users", label: "PÃ«rdoruesit", icon: "â™™" },
+    { id: "overview", label: "Përmbledhje", icon: "▦" },
+    { id: "professionals", label: "Profesionistët", icon: "♙" },
+    { id: "requests", label: "Kërkesat", icon: "☷" },
+    { id: "offers", label: "Ofertat", icon: "↗" },
+    { id: "users", label: "Përdoruesit", icon: "♙" },
   ];
 
   if (loading) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
-        Duke kontrolluar qasjen dhe tÃ« dhÃ«nat...
+        Duke kontrolluar qasjen dhe të dhënat...
       </main>
     );
   }
@@ -338,20 +338,20 @@ export default function AdminPage() {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
         <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center">
-          <div className="text-5xl">ðŸ”</div>
+          <div className="text-5xl">🔐</div>
           <h1 className="mt-5 text-2xl font-bold">THIRRE Admin</h1>
           <p className="mt-3 text-sm text-slate-400">{error}</p>
           <a
             href="/login"
             className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-3 font-semibold hover:bg-blue-500"
           >
-            Shko te kyÃ§ja
+            Shko te kyçja
           </a>
           <button
             onClick={() => void loadData()}
             className="ml-2 mt-6 rounded-xl border border-slate-700 px-5 py-3 font-semibold hover:bg-slate-800"
           >
-            Provo pÃ«rsÃ«ri
+            Provo përsëri
           </button>
         </div>
       </main>
@@ -368,7 +368,7 @@ export default function AdminPage() {
             </p>
             <h1 className="mt-1 text-2xl font-black">Admin Dashboard</h1>
             <p className="mt-1 text-sm text-slate-400">
-              Menaxhimi i platformÃ«s
+              Menaxhimi i platformës
             </p>
           </div>
 
@@ -383,7 +383,7 @@ export default function AdminPage() {
               onClick={() => void loadData()}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold hover:bg-blue-500"
             >
-              â†» Rifresko
+              ↻ Rifresko
             </button>
           </div>
         </div>
@@ -436,14 +436,14 @@ export default function AdminPage() {
         {(tab === "overview" || tab === "professionals") && (
           <section className="mb-8">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold">ProfesionistÃ«t</h2>
+              <h2 className="text-lg font-bold">Profesionistët</h2>
               <span className="text-sm text-slate-400">
                 {professionals.length} gjithsej
               </span>
             </div>
 
             {professionals.length === 0 ? (
-              <EmptyState text="Nuk ka profesionistÃ« pÃ«r t'u shfaqur." />
+              <EmptyState text="Nuk ka profesionistë për t'u shfaqur." />
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-800">
                 <table className="w-full min-w-[650px] text-left text-sm">
@@ -458,9 +458,9 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-slate-800">
                     {professionals.map((p) => (
                       <tr key={p.id} className="bg-slate-950 hover:bg-slate-900/70">
-                        <td className="p-4 font-semibold">{p.business_name || "Pa emÃ«r"}</td>
-                        <td className="p-4 text-slate-300">{p.category || "â€”"}</td>
-                        <td className="p-4 text-slate-300">{p.city || "â€”"}</td>
+                        <td className="p-4 font-semibold">{p.business_name || "Pa emër"}</td>
+                        <td className="p-4 text-slate-300">{p.category || "—"}</td>
+                        <td className="p-4 text-slate-300">{p.city || "—"}</td>
                         <td className="p-4">
                           <button
                             disabled={busy === p.id}
@@ -482,12 +482,12 @@ export default function AdminPage() {
         {(tab === "overview" || tab === "requests") && (
           <section className="mb-8">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold">KÃ«rkesat</h2>
+              <h2 className="text-lg font-bold">Kërkesat</h2>
               <span className="text-sm text-slate-400">{requests.length} gjithsej</span>
             </div>
 
             {requests.length === 0 ? (
-              <EmptyState text="Nuk ka kÃ«rkesa pÃ«r t'u shfaqur." />
+              <EmptyState text="Nuk ka kërkesa për t'u shfaqur." />
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {requests.map((request) => (
@@ -536,20 +536,20 @@ export default function AdminPage() {
             </div>
 
             {offers.length === 0 ? (
-              <EmptyState text="Nuk ka oferta pÃ«r t'u shfaqur." />
+              <EmptyState text="Nuk ka oferta për t'u shfaqur." />
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {offers.map((offer) => (
                   <article key={offer.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                    <p className="text-xs text-slate-500">KÃ«rkesa: {offer.request_id}</p>
+                    <p className="text-xs text-slate-500">Kërkesa: {offer.request_id}</p>
                     <p className="mt-3 whitespace-pre-wrap text-sm text-slate-200">{offer.message}</p>
-                    <p className="mt-3 text-xs text-slate-500">PÃ«rdoruesi: {offer.user_id}</p>
+                    <p className="mt-3 text-xs text-slate-500">Përdoruesi: {offer.user_id}</p>
                     <button
                       disabled={busy === offer.id}
                       onClick={() => void deleteOffer(offer.id)}
                       className="mt-4 rounded-lg border border-red-500/30 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                     >
-                      Fshije ofertÃ«n
+                      Fshije ofertën
                     </button>
                   </article>
                 ))}
@@ -562,9 +562,9 @@ export default function AdminPage() {
           <section className="mb-8">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold">PÃ«rdoruesit</h2>
+                <h2 className="text-lg font-bold">Përdoruesit</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  KÃ«rko, filtro dhe kliko email-in pÃ«r detaje.
+                  Kërko, filtro dhe kliko email-in për detaje.
                 </p>
               </div>
               <span className="rounded-full bg-blue-500/10 px-3 py-1.5 text-sm text-blue-300">
@@ -575,7 +575,7 @@ export default function AdminPage() {
             <div className="mb-5 grid gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-3">
               <div>
                 <label htmlFor="user-search" className="mb-2 block text-sm text-slate-400">
-                  KÃ«rko pÃ«rdoruesin
+                  Kërko përdoruesin
                 </label>
                 <input
                   id="user-search"
@@ -588,7 +588,7 @@ export default function AdminPage() {
 
               <div>
                 <label htmlFor="user-filter" className="mb-2 block text-sm text-slate-400">
-                  Lloji i llogarisÃ«
+                  Lloji i llogarisë
                 </label>
                 <select
                   id="user-filter"
@@ -596,9 +596,9 @@ export default function AdminPage() {
                   onChange={(e) => setUserFilter(e.target.value as UserFilter)}
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 >
-                  <option value="all">TÃ« gjithÃ« pÃ«rdoruesit</option>
-                  <option value="professional">ProfesionistÃ«</option>
-                  <option value="client">KlientÃ« / pa profil profesionisti</option>
+                  <option value="all">Të gjithë përdoruesit</option>
+                  <option value="professional">Profesionistë</option>
+                  <option value="client">Klientë / pa profil profesionisti</option>
                 </select>
               </div>
 
@@ -612,8 +612,8 @@ export default function AdminPage() {
                   onChange={(e) => setUserSort(e.target.value as "newest" | "oldest")}
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 >
-                  <option value="newest">MÃ« tÃ« rinjtÃ« sÃ« pari</option>
-                  <option value="oldest">MÃ« tÃ« vjetrit sÃ« pari</option>
+                  <option value="newest">Më të rinjtë së pari</option>
+                  <option value="oldest">Më të vjetrit së pari</option>
                 </select>
               </div>
 
@@ -632,7 +632,7 @@ export default function AdminPage() {
             </div>
 
             {filteredUsers.length === 0 ? (
-              <EmptyState text="Nuk u gjet asnjÃ« pÃ«rdorues me kÃ«ta filtra." />
+              <EmptyState text="Nuk u gjet asnjë përdorues me këta filtra." />
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-800">
                 <table className="w-full min-w-[780px] text-left text-sm">
@@ -640,7 +640,7 @@ export default function AdminPage() {
                     <tr>
                       <th className="p-4">Email-i</th>
                       <th className="p-4">Lloji</th>
-                      <th className="p-4">ID e pÃ«rdoruesit</th>
+                      <th className="p-4">ID e përdoruesit</th>
                       <th className="p-4">Regjistruar</th>
                     </tr>
                   </thead>
