@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -55,24 +54,20 @@ export default function BisedatPage() {
 
       setUserId(user.id);
 
+      // RLS should restrict the rows too; these filters also request only
+      // conversations in which the signed-in user is a participant.
       const { data, error: queryError } = await supabase
         .from("conversations")
         .select("id, request_id, client_id, professional_id, created_at")
+        .or(`client_id.eq.${user.id},professional_id.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
       if (queryError) throw queryError;
 
       const rows = (data ?? []) as Conversation[];
-
       const requestIds = [...new Set(rows.map((item) => item.request_id))];
-      const userIds = [
-        ...new Set(
-          rows.map((item) =>
-            item.client_id === user.id
-              ? item.professional_id
-              : item.client_id
-          )
-        ),
+      const professionalIds = [
+        ...new Set(rows.map((item) => item.professional_id)),
       ];
 
       const [requestResult, profileResult] = await Promise.all([
@@ -82,11 +77,11 @@ export default function BisedatPage() {
               .select("id, title")
               .in("id", requestIds)
           : Promise.resolve({ data: [], error: null }),
-        userIds.length
+        professionalIds.length
           ? supabase
               .from("professional_profiles")
               .select("user_id, business_name")
-              .in("user_id", userIds)
+              .in("user_id", professionalIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -106,26 +101,27 @@ export default function BisedatPage() {
 
       const enriched = rows.map((item) => {
         const otherId =
-          item.client_id === user.id
-            ? item.professional_id
-            : item.client_id;
+          item.client_id === user.id ? item.professional_id : item.client_id;
 
         return {
           ...item,
           request_title: titleMap.get(item.request_id) ?? "Kërkesë shërbimi",
-          other_name: nameMap.get(otherId) ?? "Përdorues i THIRRE",
+          other_name:
+            nameMap.get(otherId) ??
+            (item.professional_id === otherId
+              ? "Profesionist i THIRRE"
+              : "Klient i THIRRE"),
         };
       });
 
       setConversations(enriched);
-
       setSelected((current) =>
         current
           ? enriched.find((item) => item.id === current.id) ?? null
           : null
       );
     } catch (err) {
-      console.error(err);
+      console.error("Gabim gjatë ngarkimit të bisedave:", err);
       setError("Bisedat nuk u ngarkuan. Rifresko faqen dhe provo përsëri.");
     } finally {
       setLoading(false);
@@ -142,6 +138,7 @@ export default function BisedatPage() {
       .order("created_at", { ascending: true });
 
     if (queryError) {
+      console.error("Gabim gjatë ngarkimit të mesazheve:", queryError);
       setError("Mesazhet nuk u ngarkuan. Provo përsëri.");
       return;
     }
@@ -173,7 +170,6 @@ export default function BisedatPage() {
         },
         (payload) => {
           const incoming = payload.new as Message;
-
           setMessages((current) =>
             current.some((item) => item.id === incoming.id)
               ? current
@@ -204,22 +200,24 @@ export default function BisedatPage() {
     setError("");
     setNotice("");
 
-    const { error: insertError } = await supabase.from("messages").insert({
-      conversation_id: selected.id,
-      sender_id: userId,
-      body,
-    });
+    try {
+      const { error: insertError } = await supabase.from("messages").insert({
+        conversation_id: selected.id,
+        sender_id: userId,
+        body,
+      });
 
-    if (insertError) {
-      console.error(insertError);
-      setError("Mesazhi nuk u dërgua. Kontrollo qasjen dhe provo përsëri.");
-    } else {
+      if (insertError) throw insertError;
+
       setDraft("");
       setNotice("Mesazhi u dërgua.");
       await loadMessages(selected.id);
+    } catch (err) {
+      console.error("Gabim gjatë dërgimit të mesazhit:", err);
+      setError("Mesazhi nuk u dërgua. Kontrollo qasjen dhe provo përsëri.");
+    } finally {
+      setSending(false);
     }
-
-    setSending(false);
   }
 
   return (
@@ -381,9 +379,7 @@ export default function BisedatPage() {
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
                     💬
                   </div>
-                  <h2 className="mt-4 text-xl font-black">
-                    Zgjidh një bisedë
-                  </h2>
+                  <h2 className="mt-4 text-xl font-black">Zgjidh një bisedë</h2>
                   <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
                     Zgjidh një bisedë nga lista për të lexuar dhe dërguar
                     mesazhe.

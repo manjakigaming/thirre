@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -36,20 +35,22 @@ export default function NjoftimetPage() {
 
       if (authError) throw authError;
 
-      if (!authData.user) {
+      const user = authData.user;
+
+      if (!user) {
         setUserId("");
         setNotifications([]);
         return;
       }
 
-      setUserId(authData.user.id);
+      setUserId(user.id);
 
       const { data, error: queryError } = await supabase
         .from("notifications")
         .select(
           "id, user_id, type, title, body, request_id, created_at, read_at"
         )
-        .eq("user_id", authData.user.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (queryError) throw queryError;
@@ -82,7 +83,6 @@ export default function NjoftimetPage() {
         },
         (payload) => {
           const incoming = payload.new as Notification;
-
           setNotifications((current) =>
             current.some((item) => item.id === incoming.id)
               ? current
@@ -106,18 +106,29 @@ export default function NjoftimetPage() {
 
     const readAt = new Date().toISOString();
 
-    const { data, error: updateError } = await supabase
-      .from("notifications")
-      .update({ read_at: readAt })
-      .eq("id", item.id)
-      .eq("user_id", userId)
-      .is("read_at", null)
-      .select("id");
+    try {
+      const { data, error: updateError } = await supabase
+        .from("notifications")
+        .update({ read_at: readAt })
+        .eq("id", item.id)
+        .eq("user_id", userId)
+        .is("read_at", null)
+        .select("id");
 
-    if (updateError || !data?.length) {
-      console.error("Gabim gjatë shënimit si të lexuar:", updateError);
-      setError("Njoftimi nuk u përditësua. Kontrollo politikat e Supabase.");
-    } else {
+      if (updateError) throw updateError;
+
+      if (!data?.length) {
+        setNotifications((current) =>
+          current.map((notification) =>
+            notification.id === item.id
+              ? { ...notification, read_at: readAt }
+              : notification
+          )
+        );
+        setNotice("Njoftimi tashmë është lexuar ose është përditësuar.");
+        return;
+      }
+
       setNotifications((current) =>
         current.map((notification) =>
           notification.id === item.id
@@ -126,9 +137,12 @@ export default function NjoftimetPage() {
         )
       );
       setNotice("Njoftimi u shënua si i lexuar.");
+    } catch (err) {
+      console.error("Gabim gjatë shënimit si të lexuar:", err);
+      setError("Njoftimi nuk u përditësua. Kontrollo politikat e Supabase.");
+    } finally {
+      setUpdatingId(null);
     }
-
-    setUpdatingId(null);
   }
 
   async function markAllAsRead() {
@@ -140,25 +154,27 @@ export default function NjoftimetPage() {
 
     const readAt = new Date().toISOString();
 
-    const { error: updateError } = await supabase
-      .from("notifications")
-      .update({ read_at: readAt })
-      .eq("user_id", userId)
-      .is("read_at", null);
+    try {
+      const { error: updateError } = await supabase
+        .from("notifications")
+        .update({ read_at: readAt })
+        .eq("user_id", userId)
+        .is("read_at", null);
 
-    if (updateError) {
-      console.error(updateError);
-      setError("Njoftimet nuk u përditësuan. Provo përsëri.");
-    } else {
+      if (updateError) throw updateError;
+
       setNotifications((current) =>
         current.map((item) =>
           item.read_at ? item : { ...item, read_at: readAt }
         )
       );
       setNotice("Të gjitha njoftimet u shënuan si të lexuara.");
+    } catch (err) {
+      console.error("Gabim gjatë përditësimit të njoftimeve:", err);
+      setError("Njoftimet nuk u përditësuan. Provo përsëri.");
+    } finally {
+      setUpdatingId(null);
     }
-
-    setUpdatingId(null);
   }
 
   return (
@@ -187,7 +203,7 @@ export default function NjoftimetPage() {
           <button
             type="button"
             onClick={() => void markAllAsRead()}
-            disabled={unreadCount === 0 || updatingId !== null}
+            disabled={unreadCount === 0 || updatingId !== null || !userId}
             className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {updatingId === "all"
