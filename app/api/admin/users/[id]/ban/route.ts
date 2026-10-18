@@ -49,7 +49,7 @@ async function authorize(request: NextRequest): Promise<AuthResult> {
     return { error: "Sesioni nuk është valid.", status: 401 };
   }
 
-  // Kontrollo administratorin drejtpërdrejt në databazë.
+  // Verifiko administratorin në databazë.
   const { data: adminRecord, error: adminError } = await supabaseAdmin
     .from("admin_users")
     .select("user_id")
@@ -58,6 +58,7 @@ async function authorize(request: NextRequest): Promise<AuthResult> {
 
   if (adminError) {
     console.error("Kontrolli i administratorit dështoi:", adminError.message);
+
     return {
       error: "Nuk mund të verifikohet administratori.",
       status: 500,
@@ -103,7 +104,11 @@ export async function GET(
 
     if (banError) {
       console.error("Leximi i bllokimit dështoi:", banError.message);
-      return errorResponse("Nuk mund të lexohet statusi i bllokimit.", 500);
+
+      return errorResponse(
+        "Nuk mund të lexohet statusi i bllokimit.",
+        500
+      );
     }
 
     return NextResponse.json(
@@ -116,6 +121,7 @@ export async function GET(
     );
   } catch (error) {
     console.error("Gabim në GET ban:", error);
+
     return errorResponse("Ndodhi një gabim i brendshëm.", 500);
   }
 }
@@ -184,7 +190,11 @@ export async function POST(
 
       if (banError) {
         console.error("Ruajtja e bllokimit dështoi:", banError.message);
-        return errorResponse("Bllokimi nuk u ruajt në databazë.", 500);
+
+        return errorResponse(
+          "Bllokimi nuk u ruajt në databazë.",
+          500
+        );
       }
 
       return NextResponse.json({
@@ -195,6 +205,7 @@ export async function POST(
       });
     }
 
+    // Fshi vetëm banimin e përdoruesit të zgjedhur.
     const { error: unbanError } = await supabaseAdmin
       .from("user_bans")
       .delete()
@@ -202,7 +213,11 @@ export async function POST(
 
     if (unbanError) {
       console.error("Heqja e bllokimit dështoi:", unbanError.message);
-      return errorResponse("Bllokimi nuk u hoq nga databaza.", 500);
+
+      return errorResponse(
+        "Bllokimi nuk u hoq nga databaza.",
+        500
+      );
     }
 
     return NextResponse.json({
@@ -213,6 +228,7 @@ export async function POST(
     });
   } catch (error) {
     console.error("Gabim në API-n e bllokimit:", error);
+
     return errorResponse("Ndodhi një gabim i brendshëm.", 500);
   }
 }
