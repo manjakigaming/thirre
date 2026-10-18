@@ -148,9 +148,7 @@ export default function Home() {
 
     const matchesCategory =
       !selected ||
-      normalizeText(professional.category).includes(
-        normalizeText(selected)
-      );
+      normalizeText(professional.category).includes(normalizeText(selected));
 
     return matchesSearch && matchesCategory;
   });
@@ -175,7 +173,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f7f9fc] text-[#15233b]">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
           <Link
             href="/"
             className="flex items-center gap-2 text-2xl font-black text-blue-700"
@@ -186,7 +184,7 @@ export default function Home() {
             THIRRE<span className="text-blue-500">.</span>
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 lg:flex">
+          <nav className="hidden items-center gap-4 whitespace-nowrap text-sm font-semibold text-slate-600 2xl:flex">
             <a href="#kategorite" className="hover:text-blue-700">
               Kategoritë
             </a>
@@ -201,21 +199,39 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden shrink-0 items-center gap-1.5 2xl:flex">
             {userEmail ? (
               <>
-                <span className="max-w-44 truncate text-sm font-semibold text-slate-600">
+                <Link
+                  href="/pergjigjet"
+                  className="whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  Kërkesat dhe ofertat
+                </Link>
+                <Link
+                  href="/bisedat"
+                  className="whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  Bisedat
+                </Link>
+                <Link
+                  href="/njoftimet"
+                  className="whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  Njoftimet
+                </Link>
+                <span className="max-w-32 truncate text-xs font-semibold text-slate-600">
                   {userEmail}
                 </span>
                 <button
                   onClick={logout}
-                  className="rounded-xl border px-4 py-3 text-sm font-bold hover:bg-slate-50"
+                  className="whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-bold hover:bg-slate-50"
                 >
                   Dil
                 </button>
                 <Link
                   href="/offer-services"
-                  className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
+                  className="whitespace-nowrap rounded-xl bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800"
                 >
                   Ofro shërbime
                 </Link>
@@ -224,13 +240,13 @@ export default function Home() {
               <>
                 <Link
                   href="/login"
-                  className="rounded-xl px-4 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50"
+                  className="whitespace-nowrap rounded-xl px-3 py-2 text-sm font-bold text-blue-700 hover:bg-blue-50"
                 >
                   Hyr
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
+                  className="whitespace-nowrap rounded-xl bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800"
                 >
                   Regjistrohu
                 </Link>
@@ -240,7 +256,7 @@ export default function Home() {
 
           <button
             onClick={() => setMenuOpen((open) => !open)}
-            className="rounded-xl border px-4 py-2 text-sm font-bold md:hidden"
+            className="shrink-0 rounded-xl border px-4 py-2 text-sm font-bold 2xl:hidden"
             aria-expanded={menuOpen}
             aria-label="Hap menynë"
           >
@@ -249,7 +265,7 @@ export default function Home() {
         </div>
 
         {menuOpen && (
-          <div className="flex flex-col gap-4 border-t bg-white px-6 py-5 text-sm font-semibold md:hidden">
+          <div className="flex flex-col gap-4 border-t bg-white px-6 py-5 text-sm font-semibold 2xl:hidden">
             <a href="#kategorite" onClick={() => setMenuOpen(false)}>
               Kategoritë
             </a>
@@ -265,6 +281,15 @@ export default function Home() {
 
             {userEmail ? (
               <>
+                <Link href="/pergjigjet" onClick={() => setMenuOpen(false)}>
+                  Kërkesat dhe ofertat
+                </Link>
+                <Link href="/bisedat" onClick={() => setMenuOpen(false)}>
+                  Bisedat
+                </Link>
+                <Link href="/njoftimet" onClick={() => setMenuOpen(false)}>
+                  Njoftimet
+                </Link>
                 <Link
                   href="/offer-services"
                   onClick={() => setMenuOpen(false)}
