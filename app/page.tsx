@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import UnreadBadges from "@/components/UnreadBadges";
 
 type Professional = {
   id: string;
@@ -216,9 +217,10 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/njoftimet"
-                  className="whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                  className="inline-flex items-center whitespace-nowrap rounded-xl px-2 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
                 >
                   Njoftimet
+                  <UnreadBadges />
                 </Link>
                 <span className="max-w-32 truncate text-xs font-semibold text-slate-600">
                   {userEmail}
@@ -287,8 +289,13 @@ export default function Home() {
                 <Link href="/bisedat" onClick={() => setMenuOpen(false)}>
                   Bisedat
                 </Link>
-                <Link href="/njoftimet" onClick={() => setMenuOpen(false)}>
+                <Link
+                  href="/njoftimet"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center"
+                >
                   Njoftimet
+                  <UnreadBadges />
                 </Link>
                 <Link
                   href="/offer-services"
