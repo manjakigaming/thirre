@@ -16,7 +16,7 @@ export default function UnreadBadges() {
       .is("read_at", null);
 
     if (error) {
-      console.error("Gabim gjatë numërimit të njoftimeve:", error);
+      console.error("Gabim gjatë numërimit të njoftimeve:", error.message);
       return;
     }
 
@@ -39,7 +39,6 @@ export default function UnreadBadges() {
 
       const id = data.user.id;
       setUserId(id);
-
       await loadUnreadNotifications(id);
     }
 
@@ -60,24 +59,12 @@ export default function UnreadBadges() {
   useEffect(() => {
     if (!userId) return;
 
-    const channel = supabase
-      .channel(`unread-notifications-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          void loadUnreadNotifications(userId);
-        }
-      )
-      .subscribe();
+    const intervalId = window.setInterval(() => {
+      void loadUnreadNotifications(userId);
+    }, 15000);
 
     return () => {
-      void supabase.removeChannel(channel);
+      window.clearInterval(intervalId);
     };
   }, [userId, loadUnreadNotifications]);
 
