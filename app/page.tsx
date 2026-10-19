@@ -421,7 +421,7 @@ export default function Home() {
 
       <section
         id="kategorite"
-        className="mx-auto max-w-7xl px-5 py-16 md:px-8"
+        className="mx-auto max-w-7xl px-5 py-10 sm:py-12 md:px-8 md:py-16"
       >
         <p className="text-sm font-bold uppercase tracking-widest text-blue-700">
           Gjej sipas kategorisë
@@ -438,9 +438,9 @@ export default function Home() {
             <button
               key={category.name}
               onClick={() => chooseCategory(category.name)}
-              className="group rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
+              className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl sm:p-6"
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-2xl sm:h-14 sm:w-14 sm:text-3xl">
                 {category.icon}
               </span>
               <h3 className="mt-5 text-lg font-extrabold">{category.name}</h3>
@@ -516,14 +516,14 @@ export default function Home() {
               {filtered.map((professional) => (
                 <article
                   key={professional.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-blue-200 hover:shadow-xl"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-200 hover:shadow-xl sm:p-6"
                 >
                   <Link
                     href={`/profesionisti/${professional.id}`}
                     className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                     aria-label={`Shiko profilin e ${professional.business_name}`}
                   >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-xl sm:h-14 sm:w-14 sm:text-2xl">
                       {getCategoryIcon(professional.category)}
                     </div>
                     <h3 className="mt-4 text-lg font-extrabold hover:text-blue-700">
@@ -583,7 +583,7 @@ export default function Home() {
 
       <section
         id="si-funksionon"
-        className="mx-auto max-w-7xl px-5 py-16 md:px-8"
+        className="mx-auto max-w-7xl px-5 py-10 sm:py-12 md:px-8 md:py-16"
       >
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-700">
