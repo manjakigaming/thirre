@@ -57,7 +57,7 @@ export default function NjoftimetPage() {
 
       setNotifications((data ?? []) as Notification[]);
     } catch (err) {
-      console.error("Gabim gjatë ngarkimit të njoftimeve:", err);
+      console.error("Gabim gjatÃ« ngarkimit tÃ« njoftimeve:", err);
       setError("Njoftimet nuk u ngarkuan. Provo ta rifreskosh faqen.");
     } finally {
       setLoading(false);
@@ -65,7 +65,11 @@ export default function NjoftimetPage() {
   }, []);
 
   useEffect(() => {
-    void loadNotifications();
+    const timer = setTimeout(() => {
+      void loadNotifications();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [loadNotifications]);
 
   useEffect(() => {
@@ -125,7 +129,7 @@ export default function NjoftimetPage() {
               : notification
           )
         );
-        setNotice("Njoftimi tashmë është lexuar ose është përditësuar.");
+        setNotice("Njoftimi tashmÃ« Ã«shtÃ« lexuar ose Ã«shtÃ« pÃ«rditÃ«suar.");
         return;
       }
 
@@ -136,10 +140,10 @@ export default function NjoftimetPage() {
             : notification
         )
       );
-      setNotice("Njoftimi u shënua si i lexuar.");
+      setNotice("Njoftimi u shÃ«nua si i lexuar.");
     } catch (err) {
-      console.error("Gabim gjatë shënimit si të lexuar:", err);
-      setError("Njoftimi nuk u përditësua. Kontrollo politikat e Supabase.");
+      console.error("Gabim gjatÃ« shÃ«nimit si tÃ« lexuar:", err);
+      setError("Njoftimi nuk u pÃ«rditÃ«sua. Kontrollo politikat e Supabase.");
     } finally {
       setUpdatingId(null);
     }
@@ -168,10 +172,10 @@ export default function NjoftimetPage() {
           item.read_at ? item : { ...item, read_at: readAt }
         )
       );
-      setNotice("Të gjitha njoftimet u shënuan si të lexuara.");
+      setNotice("TÃ« gjitha njoftimet u shÃ«nuan si tÃ« lexuara.");
     } catch (err) {
-      console.error("Gabim gjatë përditësimit të njoftimeve:", err);
-      setError("Njoftimet nuk u përditësuan. Provo përsëri.");
+      console.error("Gabim gjatÃ« pÃ«rditÃ«simit tÃ« njoftimeve:", err);
+      setError("Njoftimet nuk u pÃ«rditÃ«suan. Provo pÃ«rsÃ«ri.");
     } finally {
       setUpdatingId(null);
     }
@@ -184,7 +188,7 @@ export default function NjoftimetPage() {
           href="/"
           className="font-bold text-blue-700 transition hover:text-blue-900"
         >
-          ← Kthehu në THIRRE
+          â† Kthehu nÃ« THIRRE
         </Link>
 
         <header className="mt-7 flex flex-wrap items-end justify-between gap-4">
@@ -196,7 +200,7 @@ export default function NjoftimetPage() {
               Njoftimet
             </h1>
             <p className="mt-2 text-slate-600">
-              Mbaji nën kontroll ofertat dhe mesazhet e reja.
+              Mbaji nÃ«n kontroll ofertat dhe mesazhet e reja.
             </p>
           </div>
 
@@ -207,8 +211,8 @@ export default function NjoftimetPage() {
             className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {updatingId === "all"
-              ? "Duke përditësuar..."
-              : "Shëno të gjitha si të lexuara"}
+              ? "Duke pÃ«rditÃ«suar..."
+              : "ShÃ«no tÃ« gjitha si tÃ« lexuara"}
           </button>
         </header>
 
@@ -216,18 +220,18 @@ export default function NjoftimetPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-black">Njoftimet e tua</h2>
             <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-800">
-              {unreadCount} të palexuara
+              {unreadCount} tÃ« palexuara
             </span>
           </div>
 
           {!userId && !loading ? (
             <div className="mt-5 rounded-xl bg-slate-50 p-5">
-              <p className="font-bold">Kyçu për t'i parë njoftimet e tua.</p>
+              <p className="font-bold">KyÃ§u pÃ«r t&apos;i parÃ« njoftimet e tua.</p>
               <Link
                 href="/login"
                 className="mt-4 inline-flex rounded-xl bg-blue-700 px-5 py-3 font-bold text-white hover:bg-blue-800"
               >
-                Kyçu në llogari
+                KyÃ§u nÃ« llogari
               </Link>
             </div>
           ) : loading ? (
@@ -237,14 +241,14 @@ export default function NjoftimetPage() {
           ) : notifications.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
               <div className="text-4xl" aria-hidden="true">
-                🔔
+                ðŸ””
               </div>
               <h3 className="mt-4 text-lg font-black">
                 Ende nuk ke njoftime
               </h3>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Kur dikush dërgon ofertë për kërkesën tënde ose të vjen mesazh
-                i ri, njoftimi do të shfaqet këtu.
+                Kur dikush dÃ«rgon ofertÃ« pÃ«r kÃ«rkesÃ«n tÃ«nde ose tÃ« vjen mesazh
+                i ri, njoftimi do tÃ« shfaqet kÃ«tu.
               </p>
             </div>
           ) : (
@@ -263,7 +267,7 @@ export default function NjoftimetPage() {
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm"
                       aria-hidden="true"
                     >
-                      {item.type === "new_message" ? "💬" : "🔔"}
+                      {item.type === "new_message" ? "ðŸ’¬" : "ðŸ””"}
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -315,7 +319,7 @@ export default function NjoftimetPage() {
                           >
                             {updatingId === item.id
                               ? "Duke ruajtur..."
-                              : "Shëno si të lexuar"}
+                              : "ShÃ«no si tÃ« lexuar"}
                           </button>
                         )}
                       </div>

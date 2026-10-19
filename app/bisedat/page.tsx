@@ -105,7 +105,7 @@ export default function BisedatPage() {
 
         return {
           ...item,
-          request_title: titleMap.get(item.request_id) ?? "Kërkesë shërbimi",
+          request_title: titleMap.get(item.request_id) ?? "KÃ«rkesÃ« shÃ«rbimi",
           other_name:
             nameMap.get(otherId) ??
             (item.professional_id === otherId
@@ -121,16 +121,14 @@ export default function BisedatPage() {
           : null
       );
     } catch (err) {
-      console.error("Gabim gjatë ngarkimit të bisedave:", err);
-      setError("Bisedat nuk u ngarkuan. Rifresko faqen dhe provo përsëri.");
+      console.error("Gabim gjatÃ« ngarkimit tÃ« bisedave:", err);
+      setError("Bisedat nuk u ngarkuan. Rifresko faqen dhe provo pÃ«rsÃ«ri.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string) => {
-    setError("");
-
     const { data, error: queryError } = await supabase
       .from("messages")
       .select("id, conversation_id, sender_id, body, created_at")
@@ -138,8 +136,8 @@ export default function BisedatPage() {
       .order("created_at", { ascending: true });
 
     if (queryError) {
-      console.error("Gabim gjatë ngarkimit të mesazheve:", queryError);
-      setError("Mesazhet nuk u ngarkuan. Provo përsëri.");
+      console.error("Gabim gjatÃ« ngarkimit tÃ« mesazheve:", queryError);
+      setError("Mesazhet nuk u ngarkuan. Provo pÃ«rsÃ«ri.");
       return;
     }
 
@@ -147,42 +145,65 @@ export default function BisedatPage() {
   }, []);
 
   useEffect(() => {
-    void loadConversations();
+    const timer = setTimeout(() => {
+      void loadConversations();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadConversations]);
 
   useEffect(() => {
-    if (!selected) {
-      setMessages([]);
-      return;
+    if (!selected) return;
+
+    const conversationId = selected.id;
+    let cancelled = false;
+
+    async function fetchMessages() {
+      const { data, error: queryError } = await supabase
+        .from("messages")
+        .select("id, conversation_id, sender_id, body, created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (cancelled) return;
+
+      if (queryError) {
+        console.error("Gabim gjate ngarkimit te mesazheve:", queryError);
+        setError("Mesazhet nuk u ngarkuan. Provo perseri.");
+        return;
+      }
+
+      setMessages((data ?? []) as Message[]);
     }
 
-    void loadMessages(selected.id);
+    void fetchMessages();
 
     const channel = supabase
-      .channel(`conversation-${selected.id}`)
+      .channel(`conversation-${conversationId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `conversation_id=eq.${selected.id}`,
+          filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const incoming = payload.new as Message;
+          const incoming = payload.new as Message[];
+          const message = incoming as unknown as Message;
           setMessages((current) =>
-            current.some((item) => item.id === incoming.id)
+            current.some((item) => item.id === message.id)
               ? current
-              : [...current, incoming]
+              : [...current, message]
           );
         }
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [selected, loadMessages]);
+  }, [selected]);
 
   async function sendMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -192,7 +213,7 @@ export default function BisedatPage() {
     const body = draft.trim();
 
     if (body.length > 5000) {
-      setError("Mesazhi nuk mund të jetë më i gjatë se 5000 karaktere.");
+      setError("Mesazhi nuk mund tÃ« jetÃ« mÃ« i gjatÃ« se 5000 karaktere.");
       return;
     }
 
@@ -210,11 +231,11 @@ export default function BisedatPage() {
       if (insertError) throw insertError;
 
       setDraft("");
-      setNotice("Mesazhi u dërgua.");
+      setNotice("Mesazhi u dÃ«rgua.");
       await loadMessages(selected.id);
     } catch (err) {
-      console.error("Gabim gjatë dërgimit të mesazhit:", err);
-      setError("Mesazhi nuk u dërgua. Kontrollo qasjen dhe provo përsëri.");
+      console.error("Gabim gjatÃ« dÃ«rgimit tÃ« mesazhit:", err);
+      setError("Mesazhi nuk u dÃ«rgua. Kontrollo qasjen dhe provo pÃ«rsÃ«ri.");
     } finally {
       setSending(false);
     }
@@ -224,7 +245,7 @@ export default function BisedatPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <Link href="/" className="font-bold text-blue-700 hover:text-blue-900">
-          ← Kthehu në THIRRE
+          â† Kthehu nÃ« THIRRE
         </Link>
 
         <header className="my-6">
@@ -233,18 +254,18 @@ export default function BisedatPage() {
           </p>
           <h1 className="mt-2 text-3xl font-black sm:text-4xl">Bisedat</h1>
           <p className="mt-2 text-slate-600">
-            Komuniko me klientët dhe profesionistët për shërbimet e tua.
+            Komuniko me klientÃ«t dhe profesionistÃ«t pÃ«r shÃ«rbimet e tua.
           </p>
         </header>
 
         {!userId && !loading ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <p className="font-bold">Duhet të kyçesh për t'i parë bisedat.</p>
+            <p className="font-bold">Duhet tÃ« kyÃ§esh pÃ«r t&apos;i parÃ« bisedat.</p>
             <Link
               href="/login"
               className="mt-4 inline-flex rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
             >
-              Kyçu në llogari
+              KyÃ§u nÃ« llogari
             </Link>
           </section>
         ) : (
@@ -265,8 +286,8 @@ export default function BisedatPage() {
                 <p className="p-5 text-sm text-slate-500">Duke ngarkuar...</p>
               ) : conversations.length === 0 ? (
                 <p className="p-5 text-sm leading-6 text-slate-500">
-                  Ende nuk ke biseda. Biseda krijohet kur një profesionist
-                  dërgon ofertë për kërkesën tënde.
+                  Ende nuk ke biseda. Biseda krijohet kur njÃ« profesionist
+                  dÃ«rgon ofertÃ« pÃ«r kÃ«rkesÃ«n tÃ«nde.
                 </p>
               ) : (
                 <div className="max-h-[420px] overflow-y-auto md:max-h-[650px]">
@@ -301,14 +322,14 @@ export default function BisedatPage() {
                   <div className="border-b border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <h2 className="font-black">{selected.other_name}</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      Kërkesa: {selected.request_title}
+                      KÃ«rkesa: {selected.request_title}
                     </p>
                   </div>
 
                   <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
                     {messages.length === 0 ? (
                       <p className="py-10 text-center text-sm text-slate-500">
-                        Fillo bisedën duke dërguar mesazhin e parë.
+                        Fillo bisedÃ«n duke dÃ«rguar mesazhin e parÃ«.
                       </p>
                     ) : (
                       messages.map((message) => {
@@ -369,7 +390,7 @@ export default function BisedatPage() {
                         disabled={sending || !draft.trim()}
                         className="rounded-xl bg-blue-700 px-6 py-3 font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {sending ? "Duke dërguar..." : "Dërgo"}
+                        {sending ? "Duke dÃ«rguar..." : "DÃ«rgo"}
                       </button>
                     </div>
                   </form>
@@ -377,11 +398,11 @@ export default function BisedatPage() {
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
-                    💬
+                    ðŸ’¬
                   </div>
-                  <h2 className="mt-4 text-xl font-black">Zgjidh një bisedë</h2>
+                  <h2 className="mt-4 text-xl font-black">Zgjidh njÃ« bisedÃ«</h2>
                   <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
-                    Zgjidh një bisedë nga lista për të lexuar dhe dërguar
+                    Zgjidh njÃ« bisedÃ« nga lista pÃ«r tÃ« lexuar dhe dÃ«rguar
                     mesazhe.
                   </p>
                 </div>

@@ -102,11 +102,11 @@ export default function PergjigjetPage() {
         setIncomingOffers([]);
       }
     } catch (err) {
-      console.error("Gabim gjatë ngarkimit:", err);
+      console.error("Gabim gjatÃ« ngarkimit:", err);
       setError(
         err instanceof Error
           ? `Gabim: ${err.message}`
-          : "Të dhënat nuk u ngarkuan. Provo përsëri."
+          : "TÃ« dhÃ«nat nuk u ngarkuan. Provo pÃ«rsÃ«ri."
       );
     } finally {
       setLoading(false);
@@ -114,7 +114,11 @@ export default function PergjigjetPage() {
   }, []);
 
   useEffect(() => {
-    void loadData();
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   async function sendResponse(request: ServiceRequest) {
@@ -124,22 +128,22 @@ export default function PergjigjetPage() {
     setError("");
 
     if (!userId) {
-      setError("Duhet të kyçesh për të dërguar ofertë.");
+      setError("Duhet tÃ« kyÃ§esh pÃ«r tÃ« dÃ«rguar ofertÃ«.");
       return;
     }
 
     if (request.user_id === userId) {
-      setError("Nuk mund t'i dërgosh ofertë kërkesës tënde.");
+      setError("Nuk mund t'i dÃ«rgosh ofertÃ« kÃ«rkesÃ«s tÃ«nde.");
       return;
     }
 
     if (request.status !== "open") {
-      setError("Kjo kërkesë është mbyllur dhe nuk pranon oferta.");
+      setError("Kjo kÃ«rkesÃ« Ã«shtÃ« mbyllur dhe nuk pranon oferta.");
       return;
     }
 
     if (message.length < 5 || message.length > 2000) {
-      setError("Oferta duhet të ketë 5 deri në 2000 karaktere.");
+      setError("Oferta duhet tÃ« ketÃ« 5 deri nÃ« 2000 karaktere.");
       return;
     }
 
@@ -156,20 +160,20 @@ export default function PergjigjetPage() {
 
       if (insertError) {
         if (insertError.code === "23505") {
-          throw new Error("Ke dërguar tashmë ofertë për këtë kërkesë.");
+          throw new Error("Ke dÃ«rguar tashmÃ« ofertÃ« pÃ«r kÃ«tÃ« kÃ«rkesÃ«.");
         }
         throw insertError;
       }
 
       setMessages((current) => ({ ...current, [request.id]: "" }));
-      setNotice("Oferta u dërgua me sukses!");
+      setNotice("Oferta u dÃ«rgua me sukses!");
       await loadData();
     } catch (err) {
-      console.error("Gabim gjatë dërgimit të ofertës:", err);
+      console.error("Gabim gjatÃ« dÃ«rgimit tÃ« ofertÃ«s:", err);
       setError(
         err instanceof Error
           ? err.message
-          : "Oferta nuk u dërgua. Provo përsëri."
+          : "Oferta nuk u dÃ«rgua. Provo pÃ«rsÃ«ri."
       );
     } finally {
       setSendingId(null);
@@ -178,14 +182,14 @@ export default function PergjigjetPage() {
 
   async function closeRequest(request: ServiceRequest) {
     if (!userId || request.user_id !== userId) {
-      setError("Vetëm pronari mund ta mbyllë kërkesën.");
+      setError("VetÃ«m pronari mund ta mbyllÃ« kÃ«rkesÃ«n.");
       return;
     }
 
     if (request.status !== "open") return;
 
     const confirmed = window.confirm(
-      `A je i sigurt që dëshiron ta mbyllësh kërkesën "${request.title}"?`
+      `A je i sigurt qÃ« dÃ«shiron ta mbyllÃ«sh kÃ«rkesÃ«n "${request.title}"?`
     );
 
     if (!confirmed) return;
@@ -204,18 +208,18 @@ export default function PergjigjetPage() {
 
       if (data !== true) {
         throw new Error(
-          "Kërkesa nuk u mbyll. Mund të jetë mbyllur më herët."
+          "KÃ«rkesa nuk u mbyll. Mund tÃ« jetÃ« mbyllur mÃ« herÃ«t."
         );
       }
 
-      setNotice("Kërkesa u mbyll me sukses.");
+      setNotice("KÃ«rkesa u mbyll me sukses.");
       await loadData();
     } catch (err) {
-      console.error("Gabim gjatë mbylljes së kërkesës:", err);
+      console.error("Gabim gjatÃ« mbylljes sÃ« kÃ«rkesÃ«s:", err);
       setError(
         err instanceof Error
-          ? `Nuk u mbyll kërkesa: ${err.message}`
-          : "Kërkesa nuk u mbyll. Provo përsëri."
+          ? `Nuk u mbyll kÃ«rkesa: ${err.message}`
+          : "KÃ«rkesa nuk u mbyll. Provo pÃ«rsÃ«ri."
       );
     } finally {
       setClosingId(null);
@@ -241,7 +245,7 @@ export default function PergjigjetPage() {
           href="/"
           className="text-sm font-bold text-blue-700 hover:text-blue-900"
         >
-          ← Kthehu në THIRRE
+          â† Kthehu nÃ« THIRRE
         </Link>
 
         <header className="mt-6">
@@ -249,10 +253,10 @@ export default function PergjigjetPage() {
             THIRRE
           </p>
           <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-            Kërkesat dhe ofertat
+            KÃ«rkesat dhe ofertat
           </h1>
           <p className="mt-3 leading-7 text-slate-600">
-            Shiko punët e publikuara, dërgo oferta dhe menaxho kërkesat e tua.
+            Shiko punÃ«t e publikuara, dÃ«rgo oferta dhe menaxho kÃ«rkesat e tua.
           </p>
         </header>
 
@@ -265,7 +269,7 @@ export default function PergjigjetPage() {
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
-            Kërkesat e klientëve
+            KÃ«rkesat e klientÃ«ve
           </button>
 
           <button
@@ -276,7 +280,7 @@ export default function PergjigjetPage() {
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
-            Ofertat për kërkesat e mia ({incomingOffers.length})
+            Ofertat pÃ«r kÃ«rkesat e mia ({incomingOffers.length})
           </button>
 
           <button
@@ -293,7 +297,7 @@ export default function PergjigjetPage() {
             href="/kerkesat"
             className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white hover:bg-blue-800"
           >
-            Publiko kërkesë
+            Publiko kÃ«rkesÃ«
           </Link>
 
           {!userId && !loading && (
@@ -301,7 +305,7 @@ export default function PergjigjetPage() {
               href="/login"
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-blue-700"
             >
-              Hyr në llogari
+              Hyr nÃ« llogari
             </Link>
           )}
         </div>
@@ -325,13 +329,13 @@ export default function PergjigjetPage() {
         )}
 
         {loading ? (
-          <p className="mt-8 text-slate-500">Duke ngarkuar të dhënat...</p>
+          <p className="mt-8 text-slate-500">Duke ngarkuar tÃ« dhÃ«nat...</p>
         ) : tab === "requests" ? (
           requests.length === 0 ? (
             <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-              <h2 className="text-xl font-bold">Nuk ka kërkesa ende</h2>
+              <h2 className="text-xl font-bold">Nuk ka kÃ«rkesa ende</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Kërkesat e publikuara do të shfaqen këtu.
+                KÃ«rkesat e publikuara do tÃ« shfaqen kÃ«tu.
               </p>
             </div>
           ) : (
@@ -351,7 +355,7 @@ export default function PergjigjetPage() {
                         {request.category}
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                        📍 {request.city}
+                        ðŸ“ {request.city}
                       </span>
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -374,7 +378,7 @@ export default function PergjigjetPage() {
 
                     {request.created_at && (
                       <p className="mt-4 text-xs text-slate-400">
-                        Publikuar më{" "}
+                        Publikuar mÃ«{" "}
                         {new Date(request.created_at).toLocaleDateString("sq-AL")}
                       </p>
                     )}
@@ -383,8 +387,8 @@ export default function PergjigjetPage() {
                       <div className="mt-5 flex flex-wrap items-center gap-3">
                         <p className="text-sm text-slate-600">
                           {isOpen
-                            ? "Kjo është kërkesa jote. Mund t'i shohësh ofertat te skeda përkatëse."
-                            : "Kjo kërkesë është mbyllur. Ofertat e mëparshme ruhen."}
+                            ? "Kjo Ã«shtÃ« kÃ«rkesa jote. Mund t'i shohÃ«sh ofertat te skeda pÃ«rkatÃ«se."
+                            : "Kjo kÃ«rkesÃ« Ã«shtÃ« mbyllur. Ofertat e mÃ«parshme ruhen."}
                         </p>
 
                         {isOpen && (
@@ -395,7 +399,7 @@ export default function PergjigjetPage() {
                           >
                             {closingId === request.id
                               ? "Duke mbyllur..."
-                              : "Mbylle kërkesën"}
+                              : "Mbylle kÃ«rkesÃ«n"}
                           </button>
                         )}
                       </div>
@@ -405,20 +409,20 @@ export default function PergjigjetPage() {
                           href="/login"
                           className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
                         >
-                          Kyçu për të dërguar ofertë
+                          KyÃ§u pÃ«r tÃ« dÃ«rguar ofertÃ«
                         </Link>
                       ) : (
                         <p className="mt-5 text-sm text-slate-500">
-                          Kjo kërkesë është mbyllur.
+                          Kjo kÃ«rkesÃ« Ã«shtÃ« mbyllur.
                         </p>
                       )
                     ) : !isOpen ? (
                       <p className="mt-5 rounded-xl bg-slate-100 p-3 text-sm text-slate-600">
-                        Kjo kërkesë është mbyllur dhe nuk pranon oferta të reja.
+                        Kjo kÃ«rkesÃ« Ã«shtÃ« mbyllur dhe nuk pranon oferta tÃ« reja.
                       </p>
                     ) : alreadyResponded ? (
                       <p className="mt-5 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
-                        Ke dërguar tashmë ofertë për këtë kërkesë.
+                        Ke dÃ«rguar tashmÃ« ofertÃ« pÃ«r kÃ«tÃ« kÃ«rkesÃ«.
                       </p>
                     ) : (
                       <div className="mt-6 border-t border-slate-100 pt-5">
@@ -426,7 +430,7 @@ export default function PergjigjetPage() {
                           htmlFor={`message-${request.id}`}
                           className="mb-2 block text-sm font-bold"
                         >
-                          Dërgo ofertën tënde
+                          DÃ«rgo ofertÃ«n tÃ«nde
                         </label>
 
                         <textarea
@@ -441,7 +445,7 @@ export default function PergjigjetPage() {
                           rows={4}
                           minLength={5}
                           maxLength={2000}
-                          placeholder="Përshkruaj si mund ta kryesh punën..."
+                          placeholder="PÃ«rshkruaj si mund ta kryesh punÃ«n..."
                           className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                         />
 
@@ -456,8 +460,8 @@ export default function PergjigjetPage() {
                             className="rounded-xl bg-blue-700 px-5 py-3 font-bold text-white hover:bg-blue-800 disabled:opacity-50"
                           >
                             {sendingId === request.id
-                              ? "Duke dërguar..."
-                              : "Dërgo ofertën"}
+                              ? "Duke dÃ«rguar..."
+                              : "DÃ«rgo ofertÃ«n"}
                           </button>
                         </div>
                       </div>
@@ -469,35 +473,35 @@ export default function PergjigjetPage() {
           )
         ) : !userId ? (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center">
-            <h2 className="text-xl font-bold">Kyçu në llogari</h2>
+            <h2 className="text-xl font-bold">KyÃ§u nÃ« llogari</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Për të parë ofertat për kërkesat e tua, duhet të kyçesh.
+              PÃ«r tÃ« parÃ« ofertat pÃ«r kÃ«rkesat e tua, duhet tÃ« kyÃ§esh.
             </p>
             <Link
               href="/login"
               className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
             >
-              Hyr në llogari
+              Hyr nÃ« llogari
             </Link>
           </div>
         ) : myRequests.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h2 className="text-xl font-bold">Ende nuk ke publikuar kërkesë</h2>
+            <h2 className="text-xl font-bold">Ende nuk ke publikuar kÃ«rkesÃ«</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Kur profesionistët t'u dërgojnë oferta kërkesave të tua, ato do të shfaqen këtu.
+              Kur profesionistÃ«t t&apos;u dÃ«rgojnÃ« oferta kÃ«rkesave tÃ« tua, ato do tÃ« shfaqen kÃ«tu.
             </p>
             <Link
               href="/kerkesat"
               className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
             >
-              Publiko kërkesë
+              Publiko kÃ«rkesÃ«
             </Link>
           </div>
         ) : incomingOffers.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h2 className="text-xl font-bold">Nuk ke marrë oferta ende</h2>
+            <h2 className="text-xl font-bold">Nuk ke marrÃ« oferta ende</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Ofertat do të shfaqen këtu pasi profesionistët t'u përgjigjen kërkesave të tua.
+              Ofertat do tÃ« shfaqen kÃ«tu pasi profesionistÃ«t t&apos;u pÃ«rgjigjen kÃ«rkesave tÃ« tua.
             </p>
           </div>
         ) : (
@@ -511,21 +515,21 @@ export default function PergjigjetPage() {
                   className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
                 >
                   <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
-                    Oferta për kërkesën
+                    Oferta pÃ«r kÃ«rkesÃ«n
                   </p>
                   <h2 className="mt-2 text-xl font-extrabold">
-                    {request?.title ?? "Kërkesë shërbimi"}
+                    {request?.title ?? "KÃ«rkesÃ« shÃ«rbimi"}
                   </h2>
                   {request && (
                     <p className="mt-2 text-sm text-slate-500">
-                      {request.category} · {request.city}
+                      {request.category} Â· {request.city}
                     </p>
                   )}
                   <div className="mt-5 whitespace-pre-wrap rounded-xl bg-slate-50 p-4 leading-7 text-slate-700">
                     {offer.message}
                   </div>
                   <p className="mt-4 text-xs text-slate-400">
-                    Dërguar më{" "}
+                    DÃ«rguar mÃ«{" "}
                     {new Date(offer.created_at).toLocaleDateString("sq-AL")}
                   </p>
                 </article>

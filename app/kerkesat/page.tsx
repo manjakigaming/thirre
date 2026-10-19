@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type ServiceRequest = {
@@ -19,29 +20,29 @@ const categories = [
   "Pastrim",
   "Renovime",
   "Montim",
-  "Tjetër",
+  "TjetÃ«r",
 ];
 
 const cities = [
-  "Prishtinë",
+  "PrishtinÃ«",
   "Prizren",
-  "Pejë",
-  "Gjakovë",
+  "PejÃ«",
+  "GjakovÃ«",
   "Gjilan",
   "Ferizaj",
-  "Mitrovicë",
+  "MitrovicÃ«",
   "Vushtrri",
-  "Podujevë",
-  "Kaçanik",
-  "Suharekë",
+  "PodujevÃ«",
+  "KaÃ§anik",
+  "SuharekÃ«",
   "Lipjan",
-  "Fushë Kosovë",
+  "FushÃ« KosovÃ«",
 ];
 
 export default function KerkesatPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Hidraulik");
-  const [city, setCity] = useState("Prishtinë");
+  const [city, setCity] = useState("PrishtinÃ«");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -62,9 +63,9 @@ export default function KerkesatPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Gabim gjatë leximit të kërkesave:", error);
+      console.error("Gabim gjatÃ« leximit tÃ« kÃ«rkesave:", error);
       setRequestsError(
-        "Kërkesat nuk mund të ngarkohen për momentin. Provo përsëri."
+        "KÃ«rkesat nuk mund tÃ« ngarkohen pÃ«r momentin. Provo pÃ«rsÃ«ri."
       );
     } else {
       setRequests((data ?? []) as ServiceRequest[]);
@@ -74,7 +75,35 @@ export default function KerkesatPage() {
   }
 
   useEffect(() => {
-    void loadRequests();
+    let cancelled = false;
+
+    async function fetchRequests() {
+      const { data, error } = await supabase
+        .from("service_requests")
+        .select("id, title, description, category, city, created_at")
+        .eq("status", "open")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Gabim gjate leximit te kerkesave:", error);
+        setRequestsError(
+          "Kerkesat nuk mund te ngarkohen per momentin. Provo perseri."
+        );
+      } else {
+        setRequests((data ?? []) as ServiceRequest[]);
+        setRequestsError("");
+      }
+
+      setLoadingRequests(false);
+    }
+
+    void fetchRequests();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function publishRequest(
@@ -95,7 +124,7 @@ export default function KerkesatPage() {
 
       if (!user) {
         setMessage(
-          "Duhet të kyçesh në llogarinë tënde për të publikuar kërkesë."
+          "Duhet tÃ« kyÃ§esh nÃ« llogarinÃ« tÃ«nde pÃ«r tÃ« publikuar kÃ«rkesÃ«."
         );
         return;
       }
@@ -114,16 +143,16 @@ export default function KerkesatPage() {
 
       setTitle("");
       setCategory("Hidraulik");
-      setCity("Prishtinë");
+      setCity("PrishtinÃ«");
       setDescription("");
       setSuccess(true);
-      setMessage("Kërkesa u publikua me sukses!");
+      setMessage("KÃ«rkesa u publikua me sukses!");
 
       await loadRequests();
     } catch (error) {
-      console.error("Gabim gjatë publikimit:", error);
+      console.error("Gabim gjatÃ« publikimit:", error);
       setMessage(
-        "Kërkesa nuk u publikua. Kontrollo lidhjen dhe provo përsëri."
+        "KÃ«rkesa nuk u publikua. Kontrollo lidhjen dhe provo pÃ«rsÃ«ri."
       );
     } finally {
       setLoading(false);
@@ -133,12 +162,11 @@ export default function KerkesatPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900">
       <div className="mx-auto max-w-3xl">
-        <a
-          href="/"
+        <Link href="/"
           className="text-sm font-semibold text-blue-700 hover:text-blue-900"
         >
-          ← Kthehu në THIRRE
-        </a>
+          â† Kthehu nÃ« THIRRE
+        </Link>
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-sm font-bold uppercase tracking-wider text-blue-700">
@@ -146,12 +174,12 @@ export default function KerkesatPage() {
           </p>
 
           <h1 className="mt-3 text-3xl font-extrabold">
-            Kërko një profesionist
+            KÃ«rko njÃ« profesionist
           </h1>
 
           <p className="mt-3 leading-7 text-slate-600">
-            Trego çfarë pune të duhet dhe në cilin qytet.
-            Publiko kërkesën që profesionistët ta shohin.
+            Trego Ã§farÃ« pune tÃ« duhet dhe nÃ« cilin qytet.
+            Publiko kÃ«rkesÃ«n qÃ« profesionistÃ«t ta shohin.
           </p>
 
           <form onSubmit={publishRequest} className="mt-8 space-y-5">
@@ -160,7 +188,7 @@ export default function KerkesatPage() {
                 htmlFor="title"
                 className="mb-2 block text-sm font-semibold"
               >
-                Çfarë pune të duhet?
+                Ã‡farÃ« pune tÃ« duhet?
               </label>
               <input
                 id="title"
@@ -223,7 +251,7 @@ export default function KerkesatPage() {
                 htmlFor="description"
                 className="mb-2 block text-sm font-semibold"
               >
-                Përshkruaje punën
+                PÃ«rshkruaje punÃ«n
               </label>
               <textarea
                 id="description"
@@ -233,7 +261,7 @@ export default function KerkesatPage() {
                 minLength={10}
                 maxLength={2000}
                 rows={5}
-                placeholder="Shpjego çfarë duhet të bëhet..."
+                placeholder="Shpjego Ã§farÃ« duhet tÃ« bÃ«het..."
                 className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               />
               <p className="mt-1 text-right text-xs text-slate-500">
@@ -259,11 +287,11 @@ export default function KerkesatPage() {
               disabled={loading}
               className="w-full rounded-xl bg-blue-700 px-5 py-3.5 font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Duke publikuar..." : "Publiko kërkesën"}
+              {loading ? "Duke publikuar..." : "Publiko kÃ«rkesÃ«n"}
             </button>
 
             <p className="text-xs leading-5 text-slate-500">
-              Duhet të jesh i kyçur për të publikuar kërkesë.
+              Duhet tÃ« jesh i kyÃ§ur pÃ«r tÃ« publikuar kÃ«rkesÃ«.
             </p>
           </form>
         </section>
@@ -272,10 +300,10 @@ export default function KerkesatPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-2xl font-extrabold">
-                Kërkesat e fundit
+                KÃ«rkesat e fundit
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Punë që kërkojnë profesionistë në Kosovë.
+                PunÃ« qÃ« kÃ«rkojnÃ« profesionistÃ« nÃ« KosovÃ«.
               </p>
             </div>
 
@@ -291,7 +319,7 @@ export default function KerkesatPage() {
 
           {loadingRequests ? (
             <p className="mt-5 rounded-xl border border-slate-200 bg-white p-6 text-slate-600">
-              Duke ngarkuar kërkesat...
+              Duke ngarkuar kÃ«rkesat...
             </p>
           ) : requestsError ? (
             <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
@@ -301,14 +329,14 @@ export default function KerkesatPage() {
                 onClick={() => void loadRequests()}
                 className="ml-2 font-bold underline"
               >
-                Provo përsëri
+                Provo pÃ«rsÃ«ri
               </button>
             </div>
           ) : requests.length === 0 ? (
             <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <h3 className="font-bold">Ende nuk ka kërkesa</h3>
+              <h3 className="font-bold">Ende nuk ka kÃ«rkesa</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Kur të publikohet një kërkesë, ajo do të shfaqet këtu.
+                Kur tÃ« publikohet njÃ« kÃ«rkesÃ«, ajo do tÃ« shfaqet kÃ«tu.
               </p>
             </div>
           ) : (
@@ -336,7 +364,7 @@ export default function KerkesatPage() {
                   </p>
 
                   <p className="mt-4 text-xs text-slate-500">
-                    Publikuar më{" "}
+                    Publikuar mÃ«{" "}
                     {new Date(request.created_at).toLocaleDateString("sq-XK")}
                   </p>
                 </article>
