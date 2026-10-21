@@ -20,29 +20,29 @@ const categories = [
   "Pastrim",
   "Renovime",
   "Montim",
-  "TjetÃ«r",
+  "Tjetër",
 ];
 
 const cities = [
-  "PrishtinÃ«",
+  "Prishtinë",
   "Prizren",
-  "PejÃ«",
-  "GjakovÃ«",
+  "Pejë",
+  "Gjakovë",
   "Gjilan",
   "Ferizaj",
-  "MitrovicÃ«",
+  "Mitrovicë",
   "Vushtrri",
-  "PodujevÃ«",
-  "KaÃ§anik",
-  "SuharekÃ«",
+  "Podujevë",
+  "Kaçanik",
+  "Suharekë",
   "Lipjan",
-  "FushÃ« KosovÃ«",
+  "Fushë Kosovë",
 ];
 
 export default function KerkesatPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Hidraulik");
-  const [city, setCity] = useState("PrishtinÃ«");
+  const [city, setCity] = useState("Prishtinë");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -56,47 +56,65 @@ export default function KerkesatPage() {
     setLoadingRequests(true);
     setRequestsError("");
 
-    const { data, error } = await supabase
-      .from("service_requests")
-      .select("id, title, description, category, city, created_at")
-      .eq("status", "open")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Gabim gjatÃ« leximit tÃ« kÃ«rkesave:", error);
-      setRequestsError(
-        "KÃ«rkesat nuk mund tÃ« ngarkohen pÃ«r momentin. Provo pÃ«rsÃ«ri."
-      );
-    } else {
-      setRequests((data ?? []) as ServiceRequest[]);
-    }
-
-    setLoadingRequests(false);
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchRequests() {
+    try {
       const { data, error } = await supabase
         .from("service_requests")
         .select("id, title, description, category, city, created_at")
         .eq("status", "open")
         .order("created_at", { ascending: false });
 
-      if (cancelled) return;
-
       if (error) {
-        console.error("Gabim gjate leximit te kerkesave:", error);
+        console.error("Gabim gjatë leximit të kërkesave:", error);
         setRequestsError(
-          "Kerkesat nuk mund te ngarkohen per momentin. Provo perseri."
+          "Kërkesat nuk mund të ngarkohen për momentin. Provo përsëri."
         );
       } else {
         setRequests((data ?? []) as ServiceRequest[]);
-        setRequestsError("");
       }
-
+    } catch (error) {
+      console.error("Gabim gjatë ngarkimit të kërkesave:", error);
+      setRequestsError(
+        "Kërkesat nuk mund të ngarkohen për momentin. Provo përsëri."
+      );
+    } finally {
       setLoadingRequests(false);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRequests() {
+      try {
+        const { data, error } = await supabase
+          .from("service_requests")
+          .select("id, title, description, category, city, created_at")
+          .eq("status", "open")
+          .order("created_at", { ascending: false });
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error("Gabim gjatë leximit të kërkesave:", error);
+          setRequestsError(
+            "Kërkesat nuk mund të ngarkohen për momentin. Provo përsëri."
+          );
+        } else {
+          setRequests((data ?? []) as ServiceRequest[]);
+          setRequestsError("");
+        }
+      } catch (error) {
+        if (cancelled) return;
+
+        console.error("Gabim gjatë ngarkimit të kërkesave:", error);
+        setRequestsError(
+          "Kërkesat nuk mund të ngarkohen për momentin. Provo përsëri."
+        );
+      } finally {
+        if (!cancelled) {
+          setLoadingRequests(false);
+        }
+      }
     }
 
     void fetchRequests();
@@ -106,12 +124,21 @@ export default function KerkesatPage() {
     };
   }, []);
 
-  async function publishRequest(
-    e: React.FormEvent<HTMLFormElement>
-  ) {
+  async function publishRequest(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
     setSuccess(false);
+
+    if (title.trim().length < 3) {
+      setMessage("Titulli duhet të ketë të paktën 3 karaktere.");
+      return;
+    }
+
+    if (description.trim().length < 10) {
+      setMessage("Përshkrimi duhet të ketë të paktën 10 karaktere.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -124,35 +151,33 @@ export default function KerkesatPage() {
 
       if (!user) {
         setMessage(
-          "Duhet tÃ« kyÃ§esh nÃ« llogarinÃ« tÃ«nde pÃ«r tÃ« publikuar kÃ«rkesÃ«."
+          "Duhet të kyçesh në llogarinë tënde për të publikuar kërkesë."
         );
         return;
       }
 
-      const { error } = await supabase
-        .from("service_requests")
-        .insert({
-          user_id: user.id,
-          title: title.trim(),
-          category,
-          city,
-          description: description.trim(),
-        });
+      const { error } = await supabase.from("service_requests").insert({
+        user_id: user.id,
+        title: title.trim(),
+        category,
+        city,
+        description: description.trim(),
+      });
 
       if (error) throw error;
 
       setTitle("");
       setCategory("Hidraulik");
-      setCity("PrishtinÃ«");
+      setCity("Prishtinë");
       setDescription("");
       setSuccess(true);
-      setMessage("KÃ«rkesa u publikua me sukses!");
+      setMessage("Kërkesa u publikua me sukses!");
 
       await loadRequests();
     } catch (error) {
-      console.error("Gabim gjatÃ« publikimit:", error);
+      console.error("Gabim gjatë publikimit:", error);
       setMessage(
-        "KÃ«rkesa nuk u publikua. Kontrollo lidhjen dhe provo pÃ«rsÃ«ri."
+        "Kërkesa nuk u publikua. Kontrollo lidhjen dhe provo përsëri."
       );
     } finally {
       setLoading(false);
@@ -162,10 +187,11 @@ export default function KerkesatPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900">
       <div className="mx-auto max-w-3xl">
-        <Link href="/"
+        <Link
+          href="/"
           className="text-sm font-semibold text-blue-700 hover:text-blue-900"
         >
-          â† Kthehu nÃ« THIRRE
+          ← Kthehu në THIRRE
         </Link>
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -174,12 +200,12 @@ export default function KerkesatPage() {
           </p>
 
           <h1 className="mt-3 text-3xl font-extrabold">
-            KÃ«rko njÃ« profesionist
+            Kërko një profesionist
           </h1>
 
           <p className="mt-3 leading-7 text-slate-600">
-            Trego Ã§farÃ« pune tÃ« duhet dhe nÃ« cilin qytet.
-            Publiko kÃ«rkesÃ«n qÃ« profesionistÃ«t ta shohin.
+            Trego çfarë pune të duhet dhe në cilin qytet. Publiko kërkesën që
+            profesionistët ta shohin.
           </p>
 
           <form onSubmit={publishRequest} className="mt-8 space-y-5">
@@ -188,7 +214,7 @@ export default function KerkesatPage() {
                 htmlFor="title"
                 className="mb-2 block text-sm font-semibold"
               >
-                Ã‡farÃ« pune tÃ« duhet?
+                Çfarë pune të duhet?
               </label>
               <input
                 id="title"
@@ -251,7 +277,7 @@ export default function KerkesatPage() {
                 htmlFor="description"
                 className="mb-2 block text-sm font-semibold"
               >
-                PÃ«rshkruaje punÃ«n
+                Përshkruaje punën
               </label>
               <textarea
                 id="description"
@@ -261,7 +287,7 @@ export default function KerkesatPage() {
                 minLength={10}
                 maxLength={2000}
                 rows={5}
-                placeholder="Shpjego Ã§farÃ« duhet tÃ« bÃ«het..."
+                placeholder="Shpjego çfarë duhet të bëhet..."
                 className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               />
               <p className="mt-1 text-right text-xs text-slate-500">
@@ -272,6 +298,7 @@ export default function KerkesatPage() {
             {message && (
               <p
                 role="status"
+                aria-live="polite"
                 className={`rounded-xl p-3 text-sm ${
                   success
                     ? "bg-green-50 text-green-800"
@@ -287,11 +314,11 @@ export default function KerkesatPage() {
               disabled={loading}
               className="w-full rounded-xl bg-blue-700 px-5 py-3.5 font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Duke publikuar..." : "Publiko kÃ«rkesÃ«n"}
+              {loading ? "Duke publikuar..." : "Publiko kërkesën"}
             </button>
 
             <p className="text-xs leading-5 text-slate-500">
-              Duhet tÃ« jesh i kyÃ§ur pÃ«r tÃ« publikuar kÃ«rkesÃ«.
+              Duhet të jesh i kyçur për të publikuar kërkesë.
             </p>
           </form>
         </section>
@@ -300,10 +327,10 @@ export default function KerkesatPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-2xl font-extrabold">
-                KÃ«rkesat e fundit
+                Kërkesat e fundit
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                PunÃ« qÃ« kÃ«rkojnÃ« profesionistÃ« nÃ« KosovÃ«.
+                Punë që kërkojnë profesionistë në Kosovë.
               </p>
             </div>
 
@@ -319,7 +346,7 @@ export default function KerkesatPage() {
 
           {loadingRequests ? (
             <p className="mt-5 rounded-xl border border-slate-200 bg-white p-6 text-slate-600">
-              Duke ngarkuar kÃ«rkesat...
+              Duke ngarkuar kërkesat...
             </p>
           ) : requestsError ? (
             <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
@@ -329,14 +356,14 @@ export default function KerkesatPage() {
                 onClick={() => void loadRequests()}
                 className="ml-2 font-bold underline"
               >
-                Provo pÃ«rsÃ«ri
+                Provo përsëri
               </button>
             </div>
           ) : requests.length === 0 ? (
             <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <h3 className="font-bold">Ende nuk ka kÃ«rkesa</h3>
+              <h3 className="font-bold">Ende nuk ka kërkesa</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Kur tÃ« publikohet njÃ« kÃ«rkesÃ«, ajo do tÃ« shfaqet kÃ«tu.
+                Kur të publikohet një kërkesë, ajo do të shfaqet këtu.
               </p>
             </div>
           ) : (
@@ -355,16 +382,14 @@ export default function KerkesatPage() {
                     </span>
                   </div>
 
-                  <h3 className="mt-3 text-lg font-bold">
-                    {request.title}
-                  </h3>
+                  <h3 className="mt-3 text-lg font-bold">{request.title}</h3>
 
                   <p className="mt-2 whitespace-pre-wrap leading-7 text-slate-600">
                     {request.description}
                   </p>
 
                   <p className="mt-4 text-xs text-slate-500">
-                    Publikuar mÃ«{" "}
+                    Publikuar më{" "}
                     {new Date(request.created_at).toLocaleDateString("sq-XK")}
                   </p>
                 </article>
