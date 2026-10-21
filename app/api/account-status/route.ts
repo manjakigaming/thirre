@@ -1,63 +1,60 @@
 
-import { connection, NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export async function GET(request: NextRequest) {
-  // Kjo rrugë varet nga kërkesa reale e përdoruesit.
-  // Nuk duhet të ekzekutohet gjatë prerenderimit statik.
-  await connection();
 
+export async function GET(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization");
 
     if (!authorization?.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: "Duhet të kyçesh përsëri." },
-        { status: 401 }
+        { authenticated: false, banned: false, reason: "" },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    const accessToken = authorization.slice(7);
+    const token = authorization.slice(7).trim();
+
+    if (!token) {
+      return NextResponse.json(
+        { authenticated: false, banned: false, reason: "" },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const publishableKey =
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-    if (!supabaseUrl || !publishableKey) {
-      console.error("Mungon konfigurimi publik i Supabase.");
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Supabase environment variables are missing.");
 
       return NextResponse.json(
-        { error: "Konfigurimi i Supabase mungon." },
-        { status: 500 }
+        { error: "Gabim i konfigurimit të serverit." },
+        { status: 500, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    // Verifiko token-in me Supabase Auth.
-    const authClient = createClient(
-      supabaseUrl,
-      publishableKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     const {
       data: { user },
       error: authError,
-    } = await authClient.auth.getUser(accessToken);
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: "Sesioni nuk është valid. Kyçu përsëri." },
-        { status: 401 }
+        { authenticated: false, banned: false, reason: "" },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    // Kontrollo në server nëse përdoruesi është i bllokuar.
     const { data: ban, error: banError } = await supabaseAdmin
       .from("user_bans")
       .select("reason")
@@ -65,38 +62,39 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (banError) {
-      console.error(
-        "Gabim gjatë kontrollit të bllokimit:",
-        banError.message
-      );
+      console.error("Account ban check failed:", banError);
 
       return NextResponse.json(
-        {
-          error: "Nuk mund të verifikohet statusi i llogarisë.",
-        },
-        { status: 500 }
+        { error: "Nuk mund të kontrollohet statusi i llogarisë." },
+        { status: 500, headers: { "Cache-Control": "no-store" } }
       );
     }
 
     if (ban) {
-      return NextResponse.json({
-        authenticated: true,
-        banned: true,
-        reason: ban.reason || "Bllokuar nga administratori.",
-      });
+      return NextResponse.json(
+        {
+          authenticated: true,
+          banned: true,
+          reason: ban.reason || "Bllokuar nga administratori.",
+        },
+        { status: 200, headers: { "Cache-Control": "no-store" } }
+      );
     }
 
-    return NextResponse.json({
-      authenticated: true,
-      banned: false,
-      reason: "",
-    });
+    return NextResponse.json(
+      {
+        authenticated: true,
+        banned: false,
+        reason: "",
+      },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
-    console.error("Gabim në account-status:", error);
+    console.error("Account status API error:", error);
 
     return NextResponse.json(
-      { error: "Ndodhi një gabim i brendshëm." },
-      { status: 500 }
+      { error: "Ndodhi një gabim gjatë kontrollit të llogarisë." },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
