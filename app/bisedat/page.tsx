@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -29,6 +30,7 @@ export default function BisedatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -49,13 +51,12 @@ export default function BisedatPage() {
         setUserId("");
         setConversations([]);
         setSelected(null);
+        setMessages([]);
         return;
       }
 
       setUserId(user.id);
 
-      // RLS should restrict the rows too; these filters also request only
-      // conversations in which the signed-in user is a participant.
       const { data, error: queryError } = await supabase
         .from("conversations")
         .select("id, request_id, client_id, professional_id, created_at")
@@ -66,18 +67,19 @@ export default function BisedatPage() {
 
       const rows = (data ?? []) as Conversation[];
       const requestIds = [...new Set(rows.map((item) => item.request_id))];
+
       const professionalIds = [
         ...new Set(rows.map((item) => item.professional_id)),
       ];
 
       const [requestResult, profileResult] = await Promise.all([
-        requestIds.length
+        requestIds.length > 0
           ? supabase
               .from("service_requests")
               .select("id, title")
               .in("id", requestIds)
           : Promise.resolve({ data: [], error: null }),
-        professionalIds.length
+        professionalIds.length > 0
           ? supabase
               .from("professional_profiles")
               .select("user_id, business_name")
@@ -99,13 +101,14 @@ export default function BisedatPage() {
         ])
       );
 
-      const enriched = rows.map((item) => {
+      const enriched: Conversation[] = rows.map((item) => {
         const otherId =
           item.client_id === user.id ? item.professional_id : item.client_id;
 
         return {
           ...item,
-          request_title: titleMap.get(item.request_id) ?? "KÃ«rkesÃ« shÃ«rbimi",
+          request_title:
+            titleMap.get(item.request_id) ?? "Kërkesë shërbimi",
           other_name:
             nameMap.get(otherId) ??
             (item.professional_id === otherId
@@ -121,33 +124,42 @@ export default function BisedatPage() {
           : null
       );
     } catch (err) {
-      console.error("Gabim gjatÃ« ngarkimit tÃ« bisedave:", err);
-      setError("Bisedat nuk u ngarkuan. Rifresko faqen dhe provo pÃ«rsÃ«ri.");
+      console.error("Gabim gjatë ngarkimit të bisedave:", err);
+      setError(
+        "Bisedat nuk u ngarkuan. Kontrollo lidhjen dhe qasjen në Supabase, pastaj provo përsëri."
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string) => {
-    const { data, error: queryError } = await supabase
-      .from("messages")
-      .select("id, conversation_id, sender_id, body, created_at")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true });
+    setMessagesLoading(true);
+    setError("");
 
-    if (queryError) {
-      console.error("Gabim gjatÃ« ngarkimit tÃ« mesazheve:", queryError);
-      setError("Mesazhet nuk u ngarkuan. Provo pÃ«rsÃ«ri.");
-      return;
+    try {
+      const { data, error: queryError } = await supabase
+        .from("messages")
+        .select("id, conversation_id, sender_id, body, created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (queryError) throw queryError;
+
+      setMessages((data ?? []) as Message[]);
+    } catch (err) {
+      console.error("Gabim gjatë ngarkimit të mesazheve:", err);
+      setError("Mesazhet nuk u ngarkuan. Kontrollo qasjen në Supabase.");
+    } finally {
+      setMessagesLoading(false);
     }
-
-    setMessages((data ?? []) as Message[]);
   }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadConversations();
     }, 0);
+
     return () => clearTimeout(timer);
   }, [loadConversations]);
 
@@ -158,21 +170,28 @@ export default function BisedatPage() {
     let cancelled = false;
 
     async function fetchMessages() {
-      const { data, error: queryError } = await supabase
-        .from("messages")
-        .select("id, conversation_id, sender_id, body, created_at")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+      setMessagesLoading(true);
+      setError("");
 
-      if (cancelled) return;
+      try {
+        const { data, error: queryError } = await supabase
+          .from("messages")
+          .select("id, conversation_id, sender_id, body, created_at")
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: true });
 
-      if (queryError) {
-        console.error("Gabim gjate ngarkimit te mesazheve:", queryError);
-        setError("Mesazhet nuk u ngarkuan. Provo perseri.");
-        return;
+        if (cancelled) return;
+        if (queryError) throw queryError;
+
+        setMessages((data ?? []) as Message[]);
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error("Gabim gjatë ngarkimit të mesazheve:", err);
+        setError("Mesazhet nuk u ngarkuan. Provo përsëri.");
+      } finally {
+        if (!cancelled) setMessagesLoading(false);
       }
-
-      setMessages((data ?? []) as Message[]);
     }
 
     void fetchMessages();
@@ -188,8 +207,8 @@ export default function BisedatPage() {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const incoming = payload.new as Message[];
-          const message = incoming as unknown as Message;
+          const message = payload.new as Message;
+
           setMessages((current) =>
             current.some((item) => item.id === message.id)
               ? current
@@ -213,7 +232,7 @@ export default function BisedatPage() {
     const body = draft.trim();
 
     if (body.length > 5000) {
-      setError("Mesazhi nuk mund tÃ« jetÃ« mÃ« i gjatÃ« se 5000 karaktere.");
+      setError("Mesazhi nuk mund të jetë më i gjatë se 5000 karaktere.");
       return;
     }
 
@@ -231,11 +250,13 @@ export default function BisedatPage() {
       if (insertError) throw insertError;
 
       setDraft("");
-      setNotice("Mesazhi u dÃ«rgua.");
+      setNotice("Mesazhi u dërgua.");
       await loadMessages(selected.id);
     } catch (err) {
-      console.error("Gabim gjatÃ« dÃ«rgimit tÃ« mesazhit:", err);
-      setError("Mesazhi nuk u dÃ«rgua. Kontrollo qasjen dhe provo pÃ«rsÃ«ri.");
+      console.error("Gabim gjatë dërgimit të mesazhit:", err);
+      setError(
+        "Mesazhi nuk u dërgua. Kontrollo qasjen dhe politikat e Supabase."
+      );
     } finally {
       setSending(false);
     }
@@ -245,7 +266,7 @@ export default function BisedatPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <Link href="/" className="font-bold text-blue-700 hover:text-blue-900">
-          â† Kthehu nÃ« THIRRE
+          ← Kthehu në THIRRE
         </Link>
 
         <header className="my-6">
@@ -254,18 +275,20 @@ export default function BisedatPage() {
           </p>
           <h1 className="mt-2 text-3xl font-black sm:text-4xl">Bisedat</h1>
           <p className="mt-2 text-slate-600">
-            Komuniko me klientÃ«t dhe profesionistÃ«t pÃ«r shÃ«rbimet e tua.
+            Komuniko me klientët dhe profesionistët për shërbimet e tua.
           </p>
         </header>
 
         {!userId && !loading ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <p className="font-bold">Duhet tÃ« kyÃ§esh pÃ«r t&apos;i parÃ« bisedat.</p>
+            <p className="font-bold">
+              Duhet të kyçesh për t&apos;i parë bisedat.
+            </p>
             <Link
               href="/login"
               className="mt-4 inline-flex rounded-xl bg-blue-700 px-5 py-3 font-bold text-white"
             >
-              KyÃ§u nÃ« llogari
+              Kyçu në llogari
             </Link>
           </section>
         ) : (
@@ -276,18 +299,21 @@ export default function BisedatPage() {
                 <button
                   type="button"
                   onClick={() => void loadConversations()}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold hover:bg-slate-50"
+                  disabled={loading}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Rifresko
+                  {loading ? "Duke rifreskuar..." : "Rifresko"}
                 </button>
               </div>
 
               {loading ? (
-                <p className="p-5 text-sm text-slate-500">Duke ngarkuar...</p>
+                <p className="p-5 text-sm text-slate-500">
+                  Duke ngarkuar bisedat...
+                </p>
               ) : conversations.length === 0 ? (
                 <p className="p-5 text-sm leading-6 text-slate-500">
-                  Ende nuk ke biseda. Biseda krijohet kur njÃ« profesionist
-                  dÃ«rgon ofertÃ« pÃ«r kÃ«rkesÃ«n tÃ«nde.
+                  Ende nuk ke biseda. Biseda krijohet kur një profesionist
+                  dërgon ofertë për kërkesën tënde.
                 </p>
               ) : (
                 <div className="max-h-[420px] overflow-y-auto md:max-h-[650px]">
@@ -322,14 +348,18 @@ export default function BisedatPage() {
                   <div className="border-b border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <h2 className="font-black">{selected.other_name}</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      KÃ«rkesa: {selected.request_title}
+                      Kërkesa: {selected.request_title}
                     </p>
                   </div>
 
                   <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
-                    {messages.length === 0 ? (
+                    {messagesLoading ? (
                       <p className="py-10 text-center text-sm text-slate-500">
-                        Fillo bisedÃ«n duke dÃ«rguar mesazhin e parÃ«.
+                        Duke ngarkuar mesazhet...
+                      </p>
+                    ) : messages.length === 0 ? (
+                      <p className="py-10 text-center text-sm text-slate-500">
+                        Fillo bisedën duke dërguar mesazhin e parë.
                       </p>
                     ) : (
                       messages.map((message) => {
@@ -338,7 +368,9 @@ export default function BisedatPage() {
                         return (
                           <div
                             key={message.id}
-                            className={`flex ${own ? "justify-end" : "justify-start"}`}
+                            className={`flex ${
+                              own ? "justify-end" : "justify-start"
+                            }`}
                           >
                             <div
                               className={`max-w-[85%] rounded-2xl px-4 py-3 ${
@@ -390,19 +422,24 @@ export default function BisedatPage() {
                         disabled={sending || !draft.trim()}
                         className="rounded-xl bg-blue-700 px-6 py-3 font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {sending ? "Duke dÃ«rguar..." : "DÃ«rgo"}
+                        {sending ? "Duke dërguar..." : "Dërgo"}
                       </button>
                     </div>
                   </form>
                 </>
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
-                    ðŸ’¬
+                  <div
+                    className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl"
+                    aria-hidden="true"
+                  >
+                    💬
                   </div>
-                  <h2 className="mt-4 text-xl font-black">Zgjidh njÃ« bisedÃ«</h2>
+                  <h2 className="mt-4 text-xl font-black">
+                    Zgjidh një bisedë
+                  </h2>
                   <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
-                    Zgjidh njÃ« bisedÃ« nga lista pÃ«r tÃ« lexuar dhe dÃ«rguar
+                    Zgjidh një bisedë nga lista për të lexuar dhe dërguar
                     mesazhe.
                   </p>
                 </div>
