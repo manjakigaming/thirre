@@ -1,8 +1,10 @@
+
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
 type AdminUser = {
@@ -422,9 +424,12 @@ function AdminUserDetailsContent() {
           ) : (
             <div className="mt-5 space-y-4">
               {professional.logo_url && (
-                <img
+                <Image
                   src={professional.logo_url}
                   alt="Logo e biznesit"
+                  width={80}
+                  height={80}
+                  unoptimized
                   className="h-20 w-20 rounded-xl border border-slate-700 object-cover"
                 />
               )}

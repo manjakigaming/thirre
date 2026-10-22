@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import ProfessionalReviews from "./ProfessionalReviews";
 
 type Professional = {
   id: string;
@@ -95,7 +96,7 @@ export default function ProfessionalProfile() {
 
     if (id) {
       void loadProfessional();
-    } 
+    }
 
     return () => {
       active = false;
@@ -395,6 +396,8 @@ export default function ProfessionalProfile() {
                 </div>
               </aside>
             </div>
+
+            <ProfessionalReviews professionalId={professional.user_id} />
 
             <footer className="border-t border-slate-100 bg-slate-50/80 px-6 py-5 text-center sm:px-9">
               <p className="text-xs font-medium text-slate-400">
