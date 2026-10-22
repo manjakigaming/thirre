@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -35,14 +35,16 @@ type AdminUser = {
   created_at: string;
 };
 
-type Tab =
-  | "overview"
-  | "professionals"
-  | "requests"
-  | "offers"
-  | "users";
-
+type Tab = "overview" | "professionals" | "requests" | "offers" | "users";
 type UserFilter = "all" | "professional" | "client";
+
+const tabs: { id: Tab; label: string; icon: string }[] = [
+  { id: "overview", label: "Përmbledhje", icon: "📊" },
+  { id: "professionals", label: "Profesionistët", icon: "🛠️" },
+  { id: "requests", label: "Kërkesat", icon: "📋" },
+  { id: "offers", label: "Ofertat", icon: "💬" },
+  { id: "users", label: "Përdoruesit", icon: "👥" },
+];
 
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
@@ -60,7 +62,7 @@ export default function AdminPage() {
   const [userFilter, setUserFilter] = useState<UserFilter>("all");
   const [userSort, setUserSort] = useState<"newest" | "oldest">("newest");
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -72,27 +74,24 @@ export default function AdminPage() {
 
       if (authError || !user) {
         setAuthorized(false);
-        setError("Duhet tÃ« kyÃ§esh pÃ«r tÃ« hyrÃ« nÃ« panelin e administratorit.");
+        setError("Duhet të kyçesh për të hyrë në panelin e administratorit.");
         return;
       }
 
-      // Kontrollo nÃ«se pÃ«rdoruesi Ã«shtÃ« administrator.
-      const {
-        data: isAdmin,
-        error: adminError,
-      } = await supabase.rpc("is_admin");
+      const { data: isAdmin, error: adminError } =
+        await supabase.rpc("is_admin");
 
       if (adminError) {
         setAuthorized(false);
         setError(
-          `Gabim gjatÃ« kontrollit tÃ« administratorit: ${adminError.message}`
+          `Gabim gjatë kontrollit të administratorit: ${adminError.message}`
         );
         return;
       }
 
       if (isAdmin !== true) {
         setAuthorized(false);
-        setError("Nuk ke leje administratori pÃ«r kÃ«tÃ« faqe.");
+        setError("Nuk ke leje administratori për këtë faqe.");
         return;
       }
 
@@ -127,22 +126,21 @@ export default function AdminPage() {
       if (offersResult.error) throw offersResult.error;
       if (usersResult.error) throw usersResult.error;
 
-      setProfessionals(professionalsResult.data ?? []);
-      setRequests(requestsResult.data ?? []);
-      setOffers(offersResult.data ?? []);
+      setProfessionals((professionalsResult.data ?? []) as Professional[]);
+      setRequests((requestsResult.data ?? []) as ServiceRequest[]);
+      setOffers((offersResult.data ?? []) as Offer[]);
       setUsers((usersResult.data ?? []) as AdminUser[]);
     } catch (err) {
       console.error("THIRRE ADMIN LOAD ERROR:", err);
-
       setError(
         err instanceof Error
           ? err.message
-          : "Ndodhi njÃ« gabim gjatÃ« ngarkimit tÃ« tÃ« dhÃ«nave."
+          : "Ndodhi një gabim gjatë ngarkimit të të dhënave."
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,10 +154,10 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadData]);
 
   const professionalUserIds = useMemo(
-    () => new Set(professionals.map((p) => p.user_id)),
+    () => new Set(professionals.map((professional) => professional.user_id)),
     [professionals]
   );
 
@@ -170,7 +168,6 @@ export default function AdminPage() {
       .filter((user) => {
         const email = user.email?.toLowerCase() ?? "";
         const id = user.id.toLowerCase();
-
         const matchesSearch =
           !query || email.includes(query) || id.includes(query);
 
@@ -195,7 +192,7 @@ export default function AdminPage() {
   async function deleteProfessional(id: string) {
     if (
       !window.confirm(
-        "A je i sigurt qÃ« dÃ«shiron ta fshish kÃ«tÃ« profil profesionisti?"
+        "A je i sigurt që dëshiron ta fshish këtë profil profesionisti?"
       )
     ) {
       return;
@@ -212,12 +209,10 @@ export default function AdminPage() {
 
       if (error) throw error;
 
-      setProfessionals((current) =>
-        current.filter((item) => item.id !== id)
-      );
+      setProfessionals((current) => current.filter((item) => item.id !== id));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Profili nuk mund tÃ« fshihet."
+        err instanceof Error ? err.message : "Profili nuk mund të fshihet."
       );
     } finally {
       setBusy("");
@@ -240,14 +235,12 @@ export default function AdminPage() {
 
       setRequests((current) =>
         current.map((item) =>
-          item.id === request.id
-            ? { ...item, status: nextStatus }
-            : item
+          item.id === request.id ? { ...item, status: nextStatus } : item
         )
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Statusi nuk mund tÃ« ndryshohet."
+        err instanceof Error ? err.message : "Statusi nuk mund të ndryshohet."
       );
     } finally {
       setBusy("");
@@ -257,7 +250,7 @@ export default function AdminPage() {
   async function deleteRequest(id: string) {
     if (
       !window.confirm(
-        "A dÃ«shiron ta fshish kÃ«tÃ« kÃ«rkesÃ«? Ofertat e lidhura mund tÃ« fshihen gjithashtu."
+        "A dëshiron ta fshish këtë kërkesë? Ofertat e lidhura mund të fshihen gjithashtu."
       )
     ) {
       return;
@@ -274,16 +267,11 @@ export default function AdminPage() {
 
       if (error) throw error;
 
-      setRequests((current) =>
-        current.filter((item) => item.id !== id)
-      );
-
-      setOffers((current) =>
-        current.filter((item) => item.request_id !== id)
-      );
+      setRequests((current) => current.filter((item) => item.id !== id));
+      setOffers((current) => current.filter((item) => item.request_id !== id));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "KÃ«rkesa nuk mund tÃ« fshihet."
+        err instanceof Error ? err.message : "Kërkesa nuk mund të fshihet."
       );
     } finally {
       setBusy("");
@@ -291,9 +279,7 @@ export default function AdminPage() {
   }
 
   async function deleteOffer(id: string) {
-    if (!window.confirm("A dÃ«shiron ta fshish kÃ«tÃ« ofertÃ«?")) {
-      return;
-    }
+    if (!window.confirm("A dëshiron ta fshish këtë ofertë?")) return;
 
     setBusy(id);
     setError("");
@@ -309,7 +295,7 @@ export default function AdminPage() {
       setOffers((current) => current.filter((item) => item.id !== id));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Oferta nuk mund tÃ« fshihet."
+        err instanceof Error ? err.message : "Oferta nuk mund të fshihet."
       );
     } finally {
       setBusy("");
@@ -317,29 +303,21 @@ export default function AdminPage() {
   }
 
   const stats = [
-    { label: "ProfesionistÃ«", value: professionals.length, icon: "ðŸ‘¨â€ðŸ”§" },
-    { label: "KÃ«rkesa", value: requests.length, icon: "ðŸ“‹" },
+    { label: "Profesionistë", value: professionals.length, icon: "🛠️" },
+    { label: "Kërkesa", value: requests.length, icon: "📋" },
     {
-      label: "KÃ«rkesa tÃ« hapura",
-      value: requests.filter((r) => r.status === "open").length,
-      icon: "ðŸŸ¢",
+      label: "Kërkesa të hapura",
+      value: requests.filter((request) => request.status === "open").length,
+      icon: "🟢",
     },
-    { label: "Oferta", value: offers.length, icon: "ðŸ’¬" },
-    { label: "PÃ«rdorues", value: users.length, icon: "ðŸ‘¥" },
-  ];
-
-  const navItems: { id: Tab; label: string; icon: string }[] = [
-    { id: "overview", label: "PÃ«rmbledhje", icon: "â–¦" },
-    { id: "professionals", label: "ProfesionistÃ«t", icon: "â™™" },
-    { id: "requests", label: "KÃ«rkesat", icon: "â˜·" },
-    { id: "offers", label: "Ofertat", icon: "â†—" },
-    { id: "users", label: "PÃ«rdoruesit", icon: "â™™" },
+    { label: "Oferta", value: offers.length, icon: "💬" },
+    { label: "Përdorues", value: users.length, icon: "👥" },
   ];
 
   if (loading) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
-        Duke kontrolluar qasjen dhe tÃ« dhÃ«nat...
+        Duke kontrolluar qasjen dhe të dhënat...
       </main>
     );
   }
@@ -348,41 +326,41 @@ export default function AdminPage() {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
         <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center">
-          <div className="text-5xl">ðŸ”</div>
-          <h1 className="mt-5 text-2xl font-bold">THIRRE Admin</h1>
-          <p className="mt-3 text-sm text-slate-400">{error}</p>
-          <a
+          <div className="text-5xl">🔒</div>
+          <h1 className="mt-4 text-xl font-bold">Qasje e kufizuar</h1>
+          <p className="mt-3 text-sm text-red-300">
+            {error || "Nuk ke leje për të hapur këtë faqe."}
+          </p>
+          <Link
             href="/login"
-            className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-3 font-semibold hover:bg-blue-500"
+            className="mt-5 inline-block rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold hover:bg-blue-500"
           >
-            Shko te kyÃ§ja
-          </a>
-          <button
-            onClick={() => void loadData()}
-            className="ml-2 mt-6 rounded-xl border border-slate-700 px-5 py-3 font-semibold hover:bg-slate-800"
-          >
-            Provo pÃ«rsÃ«ri
-          </button>
+            Shko te kyçja
+          </Link>
         </div>
       </main>
     );
   }
 
+  const visibleRequests =
+    tab === "overview" ? requests.slice(0, 5) : requests;
+  const visibleOffers = tab === "overview" ? offers.slice(0, 5) : offers;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-slate-800 bg-slate-900/80">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5">
+      <header className="border-b border-slate-800 bg-slate-900/90">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-blue-400">
+            <p className="text-xs font-black tracking-[0.25em] text-blue-400">
               THIRRE
             </p>
             <h1 className="mt-1 text-2xl font-black">Admin Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Menaxhimi i platformÃ«s
+            <p className="mt-1 text-xs text-slate-400">
+              Menaxhimi i platformës
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex gap-2">
             <Link
               href="/"
               className="rounded-xl border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
@@ -390,94 +368,118 @@ export default function AdminPage() {
               Shiko faqen
             </Link>
             <button
+              type="button"
               onClick={() => void loadData()}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold hover:bg-blue-500"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold hover:bg-blue-500"
             >
-              â†» Rifresko
+              ↻ Rifresko
             </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-5 py-8">
+      <div className="mx-auto max-w-6xl space-y-7 px-5 py-6">
         {error && (
-          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+          <div
+            role="alert"
+            className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300"
+          >
             {error}
           </div>
         )}
 
-        <nav className="mb-8 flex flex-wrap gap-2">
-          {navItems.map((item) => (
+        <nav
+          className="flex flex-wrap gap-2"
+          aria-label="Seksionet e administratorit"
+        >
+          {tabs.map((item) => (
             <button
               key={item.id}
+              type="button"
               onClick={() => setTab(item.id)}
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
                 tab === item.id
-                  ? "bg-blue-600 text-white"
-                  : "border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800"
               }`}
             >
-              <span className="mr-2">{item.icon}</span>
+              <span className="mr-2" aria-hidden="true">
+                {item.icon}
+              </span>
               {item.label}
             </button>
           ))}
         </nav>
 
         {tab === "overview" && (
-          <section className="mb-8">
+          <section>
             <h2 className="mb-4 text-lg font-bold">Statistikat</h2>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               {stats.map((stat) => (
-                <div
+                <article
                   key={stat.label}
-                  className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
+                  className="rounded-2xl border border-slate-800 bg-slate-900 p-4"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-slate-400">{stat.label}</span>
-                    <span className="text-2xl">{stat.icon}</span>
+                    <p className="text-sm text-slate-400">{stat.label}</p>
+                    <span className="text-xl" aria-hidden="true">
+                      {stat.icon}
+                    </span>
                   </div>
                   <p className="mt-4 text-3xl font-black">{stat.value}</p>
-                </div>
+                </article>
               ))}
             </div>
           </section>
         )}
 
         {(tab === "overview" || tab === "professionals") && (
-          <section className="mb-8">
+          <section>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold">ProfesionistÃ«t</h2>
+              <h2 className="text-lg font-bold">Profesionistët</h2>
               <span className="text-sm text-slate-400">
                 {professionals.length} gjithsej
               </span>
             </div>
 
             {professionals.length === 0 ? (
-              <EmptyState text="Nuk ka profesionistÃ« pÃ«r t'u shfaqur." />
+              <EmptyState text="Nuk ka ende profile profesionistësh." />
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-800">
-                <table className="w-full min-w-[650px] text-left text-sm">
-                  <thead className="bg-slate-900 text-slate-400">
+                <table className="w-full min-w-[600px] text-left text-sm">
+                  <thead className="bg-slate-900 text-slate-300">
                     <tr>
-                      <th className="p-4">Biznesi</th>
-                      <th className="p-4">Kategoria</th>
-                      <th className="p-4">Qyteti</th>
-                      <th className="p-4">Veprimet</th>
+                      <th className="px-4 py-3 font-semibold">Biznesi</th>
+                      <th className="px-4 py-3 font-semibold">Kategoria</th>
+                      <th className="px-4 py-3 font-semibold">Qyteti</th>
+                      <th className="px-4 py-3 font-semibold">Veprimet</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {professionals.map((p) => (
-                      <tr key={p.id} className="bg-slate-950 hover:bg-slate-900/70">
-                        <td className="p-4 font-semibold">{p.business_name || "Pa emÃ«r"}</td>
-                        <td className="p-4 text-slate-300">{p.category || "â€”"}</td>
-                        <td className="p-4 text-slate-300">{p.city || "â€”"}</td>
-                        <td className="p-4">
+                    {(tab === "overview"
+                      ? professionals.slice(0, 5)
+                      : professionals
+                    ).map((professional) => (
+                      <tr key={professional.id}>
+                        <td className="px-4 py-4 font-bold">
+                          {professional.business_name || "Pa emër biznesi"}
+                        </td>
+                        <td className="px-4 py-4 text-slate-300">
+                          {professional.category || "Pa kategori"}
+                        </td>
+                        <td className="px-4 py-4 text-slate-300">
+                          {professional.city || "Pa qytet"}
+                        </td>
+                        <td className="px-4 py-4">
                           <button
-                            disabled={busy === p.id}
-                            onClick={() => void deleteProfessional(p.id)}
-                            className="rounded-lg border border-red-500/30 px-3 py-2 text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                            type="button"
+                            onClick={() =>
+                              void deleteProfessional(professional.id)
+                            }
+                            disabled={busy === professional.id}
+                            className="rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                           >
-                            {busy === p.id ? "Duke punuar..." : "Fshije"}
+                            {busy === professional.id ? "Duke fshirë..." : "Fshije"}
                           </button>
                         </td>
                       </tr>
@@ -490,43 +492,56 @@ export default function AdminPage() {
         )}
 
         {(tab === "overview" || tab === "requests") && (
-          <section className="mb-8">
+          <section>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold">KÃ«rkesat</h2>
-              <span className="text-sm text-slate-400">{requests.length} gjithsej</span>
+              <h2 className="text-lg font-bold">Kërkesat</h2>
+              <span className="text-sm text-slate-400">
+                {requests.length} gjithsej
+              </span>
             </div>
 
-            {requests.length === 0 ? (
-              <EmptyState text="Nuk ka kÃ«rkesa pÃ«r t'u shfaqur." />
+            {visibleRequests.length === 0 ? (
+              <EmptyState text="Nuk ka kërkesa për t'u shfaqur." />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {requests.map((request) => (
-                  <article key={request.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                {visibleRequests.map((request) => (
+                  <article
+                    key={request.id}
+                    className="rounded-2xl border border-slate-800 bg-slate-900 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
                       <h3 className="font-bold">{request.title}</h3>
-                      <span className={`rounded-full px-3 py-1 text-xs ${
-                        request.status === "open"
-                          ? "bg-emerald-500/10 text-emerald-300"
-                          : "bg-slate-700 text-slate-300"
-                      }`}>
-                        {request.status === "open" ? "E hapur" : request.status}
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs ${
+                          request.status === "open"
+                            ? "bg-emerald-500/10 text-emerald-300"
+                            : "bg-slate-700 text-slate-300"
+                        }`}
+                      >
+                        {request.status === "open" ? "E hapur" : "E mbyllur"}
                       </span>
                     </div>
                     <p className="mt-3 text-sm text-slate-400">
-                      {request.category || "Pa kategori"} Ã‚Â· {request.city || "Pa qytet"}
+                      {request.category || "Pa kategori"} · {request.city || "Pa qytet"}
                     </p>
-                    <div className="mt-5 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <button
-                        disabled={busy === request.id}
+                        type="button"
                         onClick={() => void toggleRequestStatus(request)}
-                        className="rounded-lg border border-blue-500/30 px-3 py-2 text-sm text-blue-300 hover:bg-blue-500/10 disabled:opacity-50"
+                        disabled={busy === request.id}
+                        className="rounded-lg border border-blue-500/40 px-3 py-2 text-xs font-bold text-blue-300 hover:bg-blue-500/10 disabled:opacity-50"
                       >
-                        {request.status === "open" ? "Mbylle" : "Rihape"}
+                        {busy === request.id
+                          ? "Duke ruajtur..."
+                          : request.status === "open"
+                            ? "Mbylle"
+                            : "Hape"}
                       </button>
                       <button
-                        disabled={busy === request.id}
+                        type="button"
                         onClick={() => void deleteRequest(request.id)}
-                        className="rounded-lg border border-red-500/30 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                        disabled={busy === request.id}
+                        className="rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                       >
                         Fshije
                       </button>
@@ -539,27 +554,39 @@ export default function AdminPage() {
         )}
 
         {(tab === "overview" || tab === "offers") && (
-          <section className="mb-8">
+          <section>
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold">Ofertat</h2>
-              <span className="text-sm text-slate-400">{offers.length} gjithsej</span>
+              <span className="text-sm text-slate-400">
+                {offers.length} gjithsej
+              </span>
             </div>
 
-            {offers.length === 0 ? (
-              <EmptyState text="Nuk ka oferta pÃ«r t'u shfaqur." />
+            {visibleOffers.length === 0 ? (
+              <EmptyState text="Nuk ka oferta për t'u shfaqur." />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {offers.map((offer) => (
-                  <article key={offer.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-                    <p className="text-xs text-slate-500">KÃ«rkesa: {offer.request_id}</p>
-                    <p className="mt-3 whitespace-pre-wrap text-sm text-slate-200">{offer.message}</p>
-                    <p className="mt-3 text-xs text-slate-500">PÃ«rdoruesi: {offer.user_id}</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {visibleOffers.map((offer) => (
+                  <article
+                    key={offer.id}
+                    className="rounded-2xl border border-slate-800 bg-slate-900 p-4"
+                  >
+                    <p className="break-all text-xs text-slate-500">
+                      Kërkesa: {offer.request_id}
+                    </p>
+                    <p className="mt-3 whitespace-pre-wrap text-sm text-slate-200">
+                      {offer.message}
+                    </p>
+                    <p className="mt-3 break-all text-xs text-slate-500">
+                      Përdoruesi: {offer.user_id}
+                    </p>
                     <button
-                      disabled={busy === offer.id}
+                      type="button"
                       onClick={() => void deleteOffer(offer.id)}
-                      className="mt-4 rounded-lg border border-red-500/30 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                      disabled={busy === offer.id}
+                      className="mt-4 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                     >
-                      Fshije ofertÃ«n
+                      {busy === offer.id ? "Duke fshirë..." : "Fshije ofertën"}
                     </button>
                   </article>
                 ))}
@@ -569,123 +596,112 @@ export default function AdminPage() {
         )}
 
         {tab === "users" && (
-          <section className="mb-8">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold">PÃ«rdoruesit</h2>
+                <h2 className="text-lg font-bold">Përdoruesit</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  KÃ«rko, filtro dhe kliko email-in pÃ«r detaje.
+                  Kërko, filtro dhe kliko email-in për detaje.
                 </p>
               </div>
-              <span className="rounded-full bg-blue-500/10 px-3 py-1.5 text-sm text-blue-300">
+              <span className="rounded-full bg-blue-500/10 px-3 py-1 text-sm text-blue-300">
                 {filteredUsers.length} nga {users.length}
               </span>
             </div>
 
-            <div className="mb-5 grid gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-3">
-              <div>
-                <label htmlFor="user-search" className="mb-2 block text-sm text-slate-400">
-                  KÃ«rko pÃ«rdoruesin
-                </label>
+            <div className="mb-4 grid gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-3">
+              <label className="text-sm text-slate-300">
+                Kërko përdoruesin
                 <input
-                  id="user-search"
+                  type="search"
                   value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
+                  onChange={(event) => setUserSearch(event.target.value)}
                   placeholder="Email ose ID..."
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
+                  className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-blue-500"
                 />
-              </div>
+              </label>
 
-              <div>
-                <label htmlFor="user-filter" className="mb-2 block text-sm text-slate-400">
-                  Lloji i llogarisÃ«
-                </label>
+              <label className="text-sm text-slate-300">
+                Lloji i llogarisë
                 <select
-                  id="user-filter"
                   value={userFilter}
-                  onChange={(e) => setUserFilter(e.target.value as UserFilter)}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
+                  onChange={(event) =>
+                    setUserFilter(event.target.value as UserFilter)
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-blue-500"
                 >
-                  <option value="all">TÃ« gjithÃ« pÃ«rdoruesit</option>
-                  <option value="professional">ProfesionistÃ«</option>
-                  <option value="client">KlientÃ« / pa profil profesionisti</option>
+                  <option value="all">Të gjithë përdoruesit</option>
+                  <option value="professional">Profesionistë</option>
+                  <option value="client">Klientë / pa profil</option>
                 </select>
-              </div>
+              </label>
 
-              <div>
-                <label htmlFor="user-sort" className="mb-2 block text-sm text-slate-400">
-                  Renditja
-                </label>
+              <label className="text-sm text-slate-300">
+                Renditja
                 <select
-                  id="user-sort"
                   value={userSort}
-                  onChange={(e) => setUserSort(e.target.value as "newest" | "oldest")}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
+                  onChange={(event) =>
+                    setUserSort(event.target.value as "newest" | "oldest")
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-blue-500"
                 >
-                  <option value="newest">MÃ« tÃ« rinjtÃ« sÃ« pari</option>
-                  <option value="oldest">MÃ« tÃ« vjetrit sÃ« pari</option>
+                  <option value="newest">Më të rinjtë së pari</option>
+                  <option value="oldest">Më të vjetrit së pari</option>
                 </select>
-              </div>
+              </label>
 
-              <div className="md:col-span-3">
-                <button
-                  onClick={() => {
-                    setUserSearch("");
-                    setUserFilter("all");
-                    setUserSort("newest");
-                  }}
-                  className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                >
-                  Pastro filtrat
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserSearch("");
+                  setUserFilter("all");
+                  setUserSort("newest");
+                }}
+                className="w-fit rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+              >
+                Pastro filtrat
+              </button>
             </div>
 
             {filteredUsers.length === 0 ? (
-              <EmptyState text="Nuk u gjet asnjÃ« pÃ«rdorues me kÃ«ta filtra." />
+              <EmptyState text="Nuk u gjet asnjë përdorues." />
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-800">
-                <table className="w-full min-w-[780px] text-left text-sm">
-                  <thead className="bg-slate-900 text-slate-400">
+                <table className="w-full min-w-[650px] text-left text-sm">
+                  <thead className="bg-slate-900 text-slate-300">
                     <tr>
-                      <th className="p-4">Email-i</th>
-                      <th className="p-4">Lloji</th>
-                      <th className="p-4">ID e pÃ«rdoruesit</th>
-                      <th className="p-4">Regjistruar</th>
+                      <th className="px-4 py-3 font-semibold">Email-i</th>
+                      <th className="px-4 py-3 font-semibold">Lloji</th>
+                      <th className="px-4 py-3 font-semibold">ID e përdoruesit</th>
+                      <th className="px-4 py-3 font-semibold">Regjistruar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {filteredUsers.map((user) => {
-                      const isProfessional = professionalUserIds.has(user.id);
-
-                      return (
-                        <tr key={user.id} className="bg-slate-950 hover:bg-slate-900/70">
-                          <td className="p-4 font-medium">
-                            <Link
-                              href={`/admin/users/${user.id}`}
-                              className="text-blue-400 hover:text-blue-300 hover:underline"
-                            >
-                              {user.email || "Pa email"}
-                            </Link>
-                          </td>
-                          <td className="p-4">
-                            <span className={`rounded-full px-3 py-1 text-xs ${
-                              isProfessional
-                                ? "bg-blue-500/10 text-blue-300"
-                                : "bg-slate-800 text-slate-300"
-                            }`}>
-                              {isProfessional ? "Profesionist" : "Klient / pa profil"}
-                            </span>
-                          </td>
-                          <td className="p-4 font-mono text-xs text-slate-400">
-                            {user.id}
-                          </td>
-                          <td className="p-4 text-slate-300">
-                            {new Date(user.created_at).toLocaleDateString("sq-AL")}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {filteredUsers.map((user) => (
+                      <tr key={user.id}>
+                        <td className="px-4 py-4">
+                          <Link
+                            href={`/admin/users/${encodeURIComponent(user.id)}`}
+                            className="break-all font-semibold text-sky-400 hover:text-sky-300 hover:underline"
+                          >
+                            {user.email || "Pa email"}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="rounded-full bg-slate-800 px-3 py-1 text-xs">
+                            {professionalUserIds.has(user.id)
+                              ? "Profesionist"
+                              : "Klient / pa profil"}
+                          </span>
+                        </td>
+                        <td className="break-all px-4 py-4 font-mono text-xs text-slate-400">
+                          {user.id}
+                        </td>
+                        <td className="px-4 py-4 text-slate-300">
+                          {new Date(user.created_at).toLocaleDateString("sq-AL")}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -699,7 +715,7 @@ export default function AdminPage() {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-8 text-center text-sm text-slate-400">
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center text-sm text-slate-400">
       {text}
     </div>
   );
